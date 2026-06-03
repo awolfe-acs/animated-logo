@@ -13,18 +13,18 @@ const LAYERS = {
   },
   'vertical-oval': {
     label: 'Vertical Oval',
-    defaultMult:  2.6,
+    defaultMult:  1.9,
     defaultDelay: 300,
   },
   'horizontal-oval-wrap': {
     label: 'H. Oval — Spin',   // rotateY, horizontal-orbit-2d
-    defaultMult:  2.0,
-    defaultDelay: 180,
+    defaultMult:  1.6,
+    defaultDelay: 100,
   },
   'horizontal-oval': {
     label: 'H. Oval — Backflip', // rotateX, horizontal-orbit-3d
-    defaultMult:  1.85,
-    defaultDelay: 560,
+    defaultMult:  1.9,
+    defaultDelay: 170,
   },
   'diamond-wrap': {
     label: 'Diamond — 3D Flip',  // rotateY, diamond-3d
@@ -43,10 +43,10 @@ const LAYERS = {
 const state = {
   baseDuration: 2400,
   globalDelay: 0,
-  fadeLead: 3000,
+  fadeLead: 2400,
   // emblemLeadOffset: real-time fine-tune of the orb→emblem swap relative to fadeLead.
   // Positive = swap earlier, negative = swap later. Applied on top of fadeLead.
-  emblemLeadOffset: 0,
+  emblemLeadOffset: 140,
   layers: Object.fromEntries(
     Object.entries(LAYERS).map(([k, v]) => [k, { mult: v.defaultMult, delay: v.defaultDelay }])
   ),

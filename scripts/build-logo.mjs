@@ -23,9 +23,9 @@ const OUT = resolve(__dirname, '..', 'export', 'acs-logo.html');
 
 const baseDuration      = 2400;
 const globalDelay       = 0;
-const fadeLead          = 3000;
+const fadeLead          = 2400;
 // emblemLeadOffset: fine-tune the swap timing relative to fadeLead (+earlier / -later).
-const emblemLeadOffset  = 0;
+const emblemLeadOffset  = 140;
 // reveal.leadOffset: ms relative to the emblem crossfade. Positive = fires before it, negative = after.
 const reveal            = { duration: 1500, shift: -36, leadOffset: 1100 };
 const EASE              = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -37,9 +37,9 @@ const LOOP_PAUSE_MS = 320;
 // `to` lists the same transform functions as `from` so values interpolate cleanly.
 const LAYERS = [
   { cls: 'outer-circle',  mult: 1.0,  delay: 0,   from: 'rotateY(90deg)',                to: 'rotateY(0deg)' },
-  { cls: 'vertical-oval', mult: 2.6,  delay: 300, from: 'rotateY(450deg)',               to: 'rotateY(0deg)' },
-  { cls: 'hwrap',         mult: 2.0,  delay: 180, from: 'rotateY(90deg) rotate(-90deg)', to: 'rotateY(0deg) rotate(0deg)' },
-  { cls: 'hoval',         mult: 1.85, delay: 560, from: 'rotateX(0deg)',                 to: 'rotateX(-180deg)' },
+  { cls: 'vertical-oval', mult: 1.9,  delay: 300, from: 'rotateY(450deg)',               to: 'rotateY(0deg)' },
+  { cls: 'hwrap',         mult: 1.6,  delay: 100, from: 'rotateY(90deg) rotate(-90deg)', to: 'rotateY(0deg) rotate(0deg)' },
+  { cls: 'hoval',         mult: 1.9,  delay: 170, from: 'rotateX(0deg)',                 to: 'rotateX(-180deg)' },
   { cls: 'dwrap',         mult: 1.5,  delay: 180, from: 'rotateY(90deg)',                to: 'rotateY(0deg)' },
   { cls: 'diamond',       mult: 2.0,  delay: 380, from: 'rotate(0deg)',                  to: 'rotate(-90deg)' },
 ];
