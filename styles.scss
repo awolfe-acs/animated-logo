@@ -21,17 +21,23 @@ body {
   flex: 1;
   position: relative;
   background: #f8f8f8;
+  transition: background 300ms ease;
+
+  &.stage--dark { background: #1a1a1a; }
 }
 
 // ── Logo ──────────────────────────────────────────────────────────────────────
 
 // The full lockup (emblem + ACS wordmark) is 159×40 natively; centered & scaled here.
 .lockup {
+  --acs-color: #251f20;
   position: absolute;
   top: 50%;
   left: 50%;
   width: 159px;
   height: 40px;
+  // color drives currentColor on every SVG child (orb strokes, fills, emblem, text)
+  color: var(--acs-color);
   // 159u lockup is far wider than the emblem alone; scale down so it fits the stage
   transform: translate(-50%, -50%) scale(3);
   transform-origin: center;
@@ -53,7 +59,7 @@ body {
 
 .acs-text-paths {
   opacity: 0;
-  transform: translateX(var(--reveal-shift, -28px));
+  transform: translateX(var(--reveal-shift, -36px));
   transition:
     opacity   var(--reveal-dur, 600ms) ease,
     transform var(--reveal-dur, 600ms) cubic-bezier(0.22, 1, 0.36, 1);
@@ -153,7 +159,7 @@ body {
 // rotateX on the inner <path> (child of the spin wrap): edge-on → half flip to flat.
 @keyframes horizontal-orbit-3d {
   from { transform: rotateX(0deg); }
-  to   { transform: rotateX(-180deg); }
+  to   { transform: rotateX(-360deg); }
 }
 
 // Vertical oval: two full 3D rotations while resolving flat.
@@ -376,5 +382,36 @@ input[type='range'] {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
     border-radius: 2px;
+  }
+}
+
+.swatch-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 4px 0 8px;
+}
+
+.swatch-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  background: var(--swatch-color);
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  transition: border-color 120ms, transform 120ms;
+
+  &:hover { transform: scale(1.1); }
+
+  &.active {
+    border-color: #fff;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.3);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
   }
 }

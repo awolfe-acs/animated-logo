@@ -21,15 +21,17 @@ const OUT = resolve(__dirname, '..', 'export', 'acs-logo.html');
 
 // ── Tuned parameters (kept in sync with index.js defaults) ──────────────────────
 
-const baseDuration = 2400;
-const globalDelay  = 0;
-const fadeLead     = 3000;
-const reveal       = { duration: 600, shift: -28 };
-const EASE         = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const baseDuration      = 2400;
+const globalDelay       = 0;
+const fadeLead          = 3000;
+// emblemLeadOffset: fine-tune the swap timing relative to fadeLead (+earlier / -later).
+const emblemLeadOffset  = 0;
+// reveal.leadOffset: ms relative to the emblem crossfade. Positive = fires before it, negative = after.
+const reveal            = { duration: 1500, shift: -36, leadOffset: 1100 };
+const EASE              = 'cubic-bezier(0.22, 1, 0.36, 1)';
 
-const FADE_DUR_MS           = 400;
-const LOOP_PAUSE_MS         = 320;
-const REVEAL_LEAD_OFFSET_MS = 300;
+const FADE_DUR_MS   = 400;
+const LOOP_PAUSE_MS = 320;
 
 // Each orb layer: its class, the multiplier/delay, and the from→to transform.
 // `to` lists the same transform functions as `from` so values interpolate cleanly.
@@ -47,8 +49,8 @@ const LAYERS = [
 const layerEnd = (l) => globalDelay + l.delay + Math.round(baseDuration * l.mult);
 const sequenceEnd = Math.max(...LAYERS.map(layerEnd));
 
-const crossfadeAt = Math.max(0, sequenceEnd - fadeLead);          // emblem starts fading in
-const revealAt    = Math.max(0, crossfadeAt - REVEAL_LEAD_OFFSET_MS); // text reveal starts
+const crossfadeAt = Math.max(0, Math.max(0, sequenceEnd - fadeLead) - emblemLeadOffset); // emblem starts fading in
+const revealAt    = Math.max(0, crossfadeAt - reveal.leadOffset);                        // text reveal starts
 const revealEnd   = revealAt + reveal.duration;
 const emblemEnd   = crossfadeAt + FADE_DUR_MS;                    // emblem fully in / orb snaps off
 const masterCycle = sequenceEnd + LOOP_PAUSE_MS;
@@ -121,13 +123,16 @@ const block = `<div class="acs-logo" role="img" aria-label="ACS">
     /* ===== ACS animated logo — self-contained, no JavaScript ===== */
     /* Resize by overriding --acs-size on .acs-logo (keeps the 159:40 ratio). */
     .acs-logo {
-      /* Resize by setting --acs-size on this element (default 159px). */
+      /* Resize: set --acs-size on this element (default 159px, keeps 159:40 ratio).
+         Color:  set --acs-color on this element (default #251f20, e.g. #412bfd for blue).
+         The var() fallback is used when --acs-color is not set externally. */
       --acs-cycle: ${masterCycle}ms;
       position: relative;
       display: inline-block;
       width: var(--acs-size, 159px);
       aspect-ratio: 159 / 40;
       vertical-align: middle;
+      color: var(--acs-color, #251f20);
     }
     .acs-logo__text,
     .acs-logo__orb,
@@ -195,30 +200,36 @@ ${swapKeyframes.replace(/^/gm, '    ')}
     </defs>
     <g clip-path="url(#acs-logo-clip)">
       <g class="acs-logo__textpaths">
-${TEXT_PATHS.map((d) => `        <path d="${d}" fill="#251F20" />`).join('\n')}
+${TEXT_PATHS.map((d) => `        <path d="${d}" fill="currentColor" />`).join('\n')}
       </g>
     </g>
   </svg>
 
   <!-- Animated orb (plays, then fades under the emblem) -->
   <svg class="acs-logo__orb" viewBox="0 0 40 40" fill="none" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg">
-    <circle class="acs-logo__layer acs-logo__outer-circle" cx="20" cy="20" r="19.075" transform="rotate(-90 20 20)" stroke="#251F20" stroke-width="1.85" />
-    <path class="acs-logo__layer acs-logo__vertical-oval" d="M20 0.924805C22.8611 0.924805 25.6097 2.8629 27.6924 6.33398C29.7639 9.78664 31.0752 14.6161 31.0752 20C31.0752 25.3839 29.7639 30.2134 27.6924 33.666C25.6097 37.1371 22.8611 39.0752 20 39.0752C17.1389 39.0752 14.3903 37.1371 12.3076 33.666C10.2361 30.2134 8.9248 25.3839 8.9248 20C8.9248 14.6161 10.2361 9.78664 12.3076 6.33398C14.3903 2.8629 17.1389 0.924805 20 0.924805Z" stroke="#251F20" stroke-width="1.85" />
+    <circle class="acs-logo__layer acs-logo__outer-circle" cx="20" cy="20" r="19.075" transform="rotate(-90 20 20)" stroke="currentColor" stroke-width="1.85" />
+    <path class="acs-logo__layer acs-logo__vertical-oval" d="M20 0.924805C22.8611 0.924805 25.6097 2.8629 27.6924 6.33398C29.7639 9.78664 31.0752 14.6161 31.0752 20C31.0752 25.3839 29.7639 30.2134 27.6924 33.666C25.6097 37.1371 22.8611 39.0752 20 39.0752C17.1389 39.0752 14.3903 37.1371 12.3076 33.666C10.2361 30.2134 8.9248 25.3839 8.9248 20C8.9248 14.6161 10.2361 9.78664 12.3076 6.33398C14.3903 2.8629 17.1389 0.924805 20 0.924805Z" stroke="currentColor" stroke-width="1.85" />
     <g class="acs-logo__layer acs-logo__hwrap">
-      <path class="acs-logo__layer acs-logo__hoval" d="M0.924804 20C0.924804 17.1389 2.8629 14.3903 6.33398 12.3076C9.78664 10.2361 14.6161 8.9248 20 8.9248C25.3839 8.9248 30.2134 10.2361 33.666 12.3076C37.1371 14.3903 39.0752 17.1389 39.0752 20C39.0752 22.8611 37.1371 25.6097 33.666 27.6924C30.2134 29.7639 25.3839 31.0752 20 31.0752C14.6161 31.0752 9.78664 29.7639 6.33398 27.6924C2.8629 25.6097 0.924804 22.8611 0.924804 20Z" stroke="#251F20" stroke-width="1.85" />
+      <path class="acs-logo__layer acs-logo__hoval" d="M0.924804 20C0.924804 17.1389 2.8629 14.3903 6.33398 12.3076C9.78664 10.2361 14.6161 8.9248 20 8.9248C25.3839 8.9248 30.2134 10.2361 33.666 12.3076C37.1371 14.3903 39.0752 17.1389 39.0752 20C39.0752 22.8611 37.1371 25.6097 33.666 27.6924C30.2134 29.7639 25.3839 31.0752 20 31.0752C14.6161 31.0752 9.78664 29.7639 6.33398 27.6924C2.8629 25.6097 0.924804 22.8611 0.924804 20Z" stroke="currentColor" stroke-width="1.85" />
     </g>
     <g class="acs-logo__layer acs-logo__dwrap">
-      <path class="acs-logo__layer acs-logo__diamond" d="M21.1511 14.9722C20.5153 14.3364 19.4844 14.3364 18.8486 14.9722L14.972 18.8488C14.3362 19.4846 14.3362 20.5156 14.972 21.1513L18.8486 25.028C19.4844 25.6637 20.5153 25.6637 21.1511 25.028L25.0277 21.1513C25.6635 20.5156 25.6635 19.4846 25.0277 18.8488L21.1511 14.9722Z" fill="#251F20" />
+      <path class="acs-logo__layer acs-logo__diamond" d="M21.1511 14.9722C20.5153 14.3364 19.4844 14.3364 18.8486 14.9722L14.972 18.8488C14.3362 19.4846 14.3362 20.5156 14.972 21.1513L18.8486 25.028C19.4844 25.6637 20.5153 25.6637 21.1511 25.028L25.0277 21.1513C25.6635 20.5156 25.6635 19.4846 25.0277 18.8488L21.1511 14.9722Z" fill="currentColor" />
     </g>
   </svg>
 
   <!-- Final emblem (the perfect form, faded in on top) -->
   <svg class="acs-logo__emblem" viewBox="0 0 40 40" fill="none" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg">
-${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="#251F20" />`).join('\n')}
+${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="currentColor" />`).join('\n')}
   </svg>
 </div>`;
 
 // ── Demo page wrapper ────────────────────────────────────────────────────────────
+
+// Helper: stamp a class + optional --acs-color override onto the block wrapper
+const instance = (cls, color) => block
+  .replace(/^/gm, '    ')
+  .replace('class="acs-logo"', `class="acs-logo ${cls}"`)
+  + (color ? `\n    <style>.acs-logo.${cls.split(' ').find(c => c === 'black' || c === 'blue')} { --acs-color: ${color}; }</style>` : '');
 
 const page = `<!DOCTYPE html>
 <html lang="en">
@@ -234,23 +245,50 @@ const page = `<!DOCTYPE html>
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 56px;
+        gap: 64px;
         background: #f8f8f8;
         font-family: system-ui, -apple-system, sans-serif;
         color: #999;
       }
       .demo-note { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
-      /* The export below is fully self-contained; these just show it at a few sizes. */
-      .big   { --acs-size: 520px; }
-      .small { --acs-size: 220px; }
+      .demo-row  { display: flex; align-items: center; gap: 60px; }
+      .demo-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; width: 40px; text-align: right; flex-shrink: 0; }
+      /* Size helpers — override --acs-size; color helpers — override --acs-color */
+      .big   { --acs-size: 400px; }
+      .small { --acs-size: 158px; }
+      /* Override --acs-color with higher specificity than the block's .acs-logo rule */
+      .acs-logo.black { --acs-color: #251f20; }
+      .acs-logo.blue  { --acs-color: #412bfd; }
+      .acs-logo.white { --acs-color: #ffffff; }
+      /* Dark container for the white row so the logo is visible */
+      .demo-row--dark {
+        background: #1a1a1a;
+        border-radius: 16px;
+        padding: 40px 60px;
+      }
+      .demo-row--dark .demo-label { color: rgba(255,255,255,0.25); }
     </style>
   </head>
   <body>
     <div class="demo-note">Generated by npm run build:logo &middot; ${masterCycle}ms loop &middot; no JavaScript</div>
 
-${block.replace(/^/gm, '    ').replace('class="acs-logo"', 'class="acs-logo big"')}
+    <div class="demo-row">
+      <span class="demo-label">Large</span>
+${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo big black"')}
+${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo big blue"')}
+    </div>
 
-${block.replace(/^/gm, '    ').replace('class="acs-logo"', 'class="acs-logo small"')}
+    <div class="demo-row">
+      <span class="demo-label">Small</span>
+${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo small black"')}
+${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo small blue"')}
+    </div>
+
+    <div class="demo-row demo-row--dark">
+      <span class="demo-label">White</span>
+${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo big white"')}
+${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo small white"')}
+    </div>
   </body>
 </html>
 `;

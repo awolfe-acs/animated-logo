@@ -1,5 +1,5 @@
 import './styles.scss';
-import emblemUrl from './ACS-Emblem.svg';
+import emblemRaw from './ACS-Emblem.svg?raw';
 
 // ── Layer config ──────────────────────────────────────────────────────────────
 // horizontal-oval-wrap  = horizontal-orbit-2d = rotateY spin (the wrapper <g>)
@@ -44,11 +44,15 @@ const state = {
   baseDuration: 2400,
   globalDelay: 0,
   fadeLead: 3000,
+  // emblemLeadOffset: real-time fine-tune of the orb→emblem swap relative to fadeLead.
+  // Positive = swap earlier, negative = swap later. Applied on top of fadeLead.
+  emblemLeadOffset: 0,
   layers: Object.fromEntries(
     Object.entries(LAYERS).map(([k, v]) => [k, { mult: v.defaultMult, delay: v.defaultDelay }])
   ),
   ease: { x1: 0.22, y1: 1.0, x2: 0.36, y2: 1.0 },
-  reveal: { duration: 600, shift: -28 },
+  // leadOffset: ms relative to the emblem crossfade. Positive = fires before it, negative = after.
+  reveal: { duration: 1500, shift: -36, leadOffset: 1100 },
 };
 
 // ── Animation helpers ─────────────────────────────────────────────────────────
@@ -91,18 +95,75 @@ function getSequenceDuration() {
   return maxEnd;
 }
 
-const REVEAL_LEAD_OFFSET_MS = 300; // text reveal fires this many ms before the emblem crossfade
-
 let loopTimer;
 let fadeTimer;
 let revealTimer;
 let fadeSnapTimer;
 let debounceTimer;
+let animStartTime = 0; // absolute ms when the current animation cycle began
 
 function clearLoopTimer()    { clearTimeout(loopTimer);    loopTimer    = null; }
 function clearFadeTimer()    { clearTimeout(fadeTimer);    fadeTimer    = null; }
 function clearRevealTimer()  { clearTimeout(revealTimer);  revealTimer  = null; }
 function clearFadeSnapTimer(){ clearTimeout(fadeSnapTimer); fadeSnapTimer = null; }
+
+// Adjusted crossfade start: fadeLead pushes it early, emblemLeadOffset fine-tunes further.
+function getCrossfadeDelay() {
+  const base = Math.max(0, getSequenceDuration() - state.fadeLead);
+  return Math.max(0, base - state.emblemLeadOffset);
+}
+
+// Reschedule only the reveal timer using elapsed-time arithmetic, without
+// restarting the full animation. Called directly from the reveal-lead slider.
+function rescheduleReveal() {
+  clearRevealTimer();
+  const targetReveal = getCrossfadeDelay() - state.reveal.leadOffset;
+  const elapsed      = Date.now() - animStartTime;
+  const remaining    = targetReveal - elapsed;
+
+  const paths = document.querySelector('.acs-text-paths');
+  if (!paths) return;
+
+  if (remaining <= 0) {
+    paths.classList.add('revealed');
+  } else {
+    if (paths.classList.contains('revealed')) {
+      paths.style.transition = 'none';
+      paths.classList.remove('revealed');
+      requestAnimationFrame(() => requestAnimationFrame(() => paths.style.removeProperty('transition')));
+    }
+    revealTimer = setTimeout(() => document.querySelector('.acs-text-paths')?.classList.add('revealed'), remaining);
+  }
+}
+
+// Reschedule only the emblem crossfade (and cascade-reschedule reveal), without
+// restarting the full animation. Called directly from the emblem-swap-offset slider.
+function rescheduleFade() {
+  clearFadeTimer();
+  clearFadeSnapTimer();
+  const elapsed   = Date.now() - animStartTime;
+  const remaining = getCrossfadeDelay() - elapsed;
+
+  const emblem = document.querySelector('.logo-emblem');
+  const logo   = document.querySelector('.orb-logo');
+
+  if (remaining <= 0) {
+    if (!emblem?.classList.contains('visible')) crossfade();
+  } else {
+    // New timing is in the future — undo any crossfade that already started.
+    if (emblem?.classList.contains('visible') || logo?.classList.contains('faded')) {
+      if (logo) {
+        logo.style.transition = 'none';
+        logo.classList.remove('faded');
+        requestAnimationFrame(() => logo.style.removeProperty('transition'));
+      }
+      emblem?.classList.remove('visible');
+    }
+    fadeTimer = setTimeout(crossfade, remaining);
+  }
+  // Reveal timing depends on crossfade timing, so cascade the reschedule.
+  rescheduleReveal();
+}
 
 function crossfade() {
   const emblem = document.querySelector('.logo-emblem');
@@ -143,8 +204,8 @@ function snapReset() {
 function scheduleFade() {
   clearFadeTimer();
   clearRevealTimer();
-  const crossfadeDelay = Math.max(0, getSequenceDuration() - state.fadeLead);
-  const revealDelay    = Math.max(0, crossfadeDelay - REVEAL_LEAD_OFFSET_MS);
+  const crossfadeDelay = getCrossfadeDelay();
+  const revealDelay    = Math.max(0, crossfadeDelay - state.reveal.leadOffset);
   revealTimer = setTimeout(() => document.querySelector('.acs-text-paths')?.classList.add('revealed'), revealDelay);
   fadeTimer   = setTimeout(crossfade, crossfadeDelay);
 }
@@ -160,6 +221,7 @@ function restartAnimation() {
   clearRevealTimer();
   clearFadeSnapTimer();
   snapReset();
+  animStartTime = Date.now();
   applyStyles();
   applyRevealStyles();
   const logo = document.querySelector('.orb-logo');
@@ -259,6 +321,31 @@ function buildControls() {
   heading.textContent = 'Animation Controls';
   panel.appendChild(heading);
 
+  // Color
+  panel.appendChild(makeSection('Color'));
+  const swatchRow = document.createElement('div');
+  swatchRow.className = 'swatch-row';
+  const COLORS = [
+    { label: 'Black', value: '#251f20' },
+    { label: 'Blue',  value: '#412bfd' },
+    { label: 'White', value: '#ffffff' },
+  ];
+  COLORS.forEach(({ label, value }, i) => {
+    const btn = document.createElement('button');
+    btn.className   = 'swatch-btn' + (i === 0 ? ' active' : '');
+    btn.title       = label;
+    btn.style.setProperty('--swatch-color', value);
+    btn.addEventListener('click', () => {
+      swatchRow.querySelectorAll('.swatch-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelector('.lockup').style.setProperty('--acs-color', value);
+      // White needs a dark stage to be visible
+      document.querySelector('.stage').classList.toggle('stage--dark', value === '#ffffff');
+    });
+    swatchRow.appendChild(btn);
+  });
+  panel.appendChild(swatchRow);
+
   // Global
   panel.appendChild(makeSection('Global'));
   panel.appendChild(makeSlider({
@@ -285,6 +372,14 @@ function buildControls() {
     format: (v) => `${v}ms`,
     onChange: (v) => { state.fadeLead = v; scheduleRestart(); },
   }));
+  panel.appendChild(makeSlider({
+    id: 'emblem-lead-offset',
+    label: 'Emblem Swap Offset',
+    min: -1200, max: 1200, step: 10,
+    value: state.emblemLeadOffset,
+    format: (v) => v > 0 ? `+${v}ms` : `${v}ms`,
+    onChange: (v) => { state.emblemLeadOffset = v; rescheduleFade(); },
+  }));
 
   // Layers
   panel.appendChild(makeSection('Layers'));
@@ -294,6 +389,15 @@ function buildControls() {
 
   // Text Reveal (ACS wordmark)
   panel.appendChild(makeSection('Text Reveal'));
+  panel.appendChild(makeSlider({
+    id: 'reveal-lead-offset',
+    label: 'Reveal Lead (vs emblem fade)',
+    min: -1200, max: 1200, step: 10,
+    value: state.reveal.leadOffset,
+    format: (v) => v > 0 ? `+${v}ms` : `${v}ms`,
+    // Reschedule only the reveal timer — no full animation restart needed.
+    onChange: (v) => { state.reveal.leadOffset = v; rescheduleReveal(); },
+  }));
   panel.appendChild(makeSlider({
     id: 'reveal-duration',
     label: 'Reveal Duration',
@@ -352,15 +456,19 @@ function buildControls() {
   panel.appendChild(btn);
 }
 
-// Inject the static emblem overlay into the stage
-const emblemImg = document.createElement('img');
-emblemImg.src       = emblemUrl;
-emblemImg.className = 'logo-emblem';
-emblemImg.width     = 40;
-emblemImg.height    = 40;
-emblemImg.alt       = '';
-emblemImg.setAttribute('aria-hidden', 'true');
-document.querySelector('.lockup').appendChild(emblemImg);
+// Inject the emblem as an inline SVG so it inherits currentColor from .lockup.
+// Replace hardcoded fill values with currentColor before injection.
+const emblemDiv = document.createElement('div');
+emblemDiv.innerHTML = emblemRaw
+  .replace(/fill="#251F20"/gi, 'fill="currentColor"')
+  .replace(/stroke="#251F20"/gi, 'stroke="currentColor"');
+const emblemSvg = emblemDiv.firstElementChild;
+emblemSvg.setAttribute('class', 'logo-emblem');
+emblemSvg.setAttribute('width', '40');
+emblemSvg.setAttribute('height', '40');
+emblemSvg.setAttribute('aria-hidden', 'true');
+emblemSvg.setAttribute('shape-rendering', 'geometricPrecision');
+document.querySelector('.lockup').appendChild(emblemSvg);
 
 buildControls();
 restartAnimation();
