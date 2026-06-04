@@ -133,7 +133,7 @@ body {
   opacity: 1;
   transform: translateZ(0);
   will-change: opacity;
-  transition: opacity 150ms ease;
+  transition: opacity 55ms linear;
 }
 
 // ── Hover orb (hover variant — hidden by default, shown on hover) ─────────────
@@ -143,7 +143,7 @@ body {
   perspective: 120px;
   transform-style: preserve-3d;
   opacity: 0;
-  transition: opacity 150ms ease;
+  transition: opacity 35ms linear;
 
   // Layers share base rules with .orb-logo
   .layer {
@@ -173,11 +173,17 @@ body {
 .lockup--hover {
   cursor: pointer;
 
-  &:hover {
+  // Exit-only swap tuning (applied by JS right before removing .hover-orb-active).
+  &.hover-orb-exit {
+    .hover-orb-logo { transition: opacity 95ms linear 12ms; }
+    .hover-emblem   { transition: opacity 22ms linear; }
+  }
+
+  // JS toggles .hover-orb-active on enter; stays through mouseleave until the cycle completes.
+  &.hover-orb-active {
     .hover-orb-logo { opacity: 1; }
     .hover-emblem   { opacity: 0; }
 
-    // Animations only while hovered — each enter restarts from 0% (unlike play-state: paused).
     .hover-orb-logo {
       .vertical-oval {
         animation: hover-vert-orbit 2800ms linear infinite;
@@ -188,11 +194,14 @@ body {
       .horizontal-oval {
         animation: hover-h-orbit-3d 2000ms linear infinite;
       }
+      .diamond {
+        animation: hover-diamond-2d 2400ms linear infinite;
+      }
     }
   }
 
-  // Resting "arrived" pose when not hovered (matches keyframe 0% / visual end state).
-  .hover-orb-logo {
+  // Resting "arrived" pose when idle (matches keyframe end state).
+  &:not(.hover-orb-active) .hover-orb-logo {
     .vertical-oval {
       animation: none;
       transform: rotateY(0deg);
@@ -204,6 +213,10 @@ body {
     .horizontal-oval {
       animation: none;
       transform: rotateX(0deg);
+    }
+    .diamond {
+      animation: none;
+      transform: rotate(-90deg);
     }
   }
 }
@@ -326,6 +339,12 @@ body {
 @keyframes hover-h-orbit-3d {
   0%   { transform: rotateX(-360deg); }
   100% { transform: rotateX(0deg); }
+}
+
+// Diamond: 2D counter-clockwise spin only, ending where it started.
+@keyframes hover-diamond-2d {
+  from { transform: rotate(-90deg); }
+  to   { transform: rotate(-270deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {

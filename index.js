@@ -475,11 +475,214 @@ function makeEmblemSvg(cls) {
 // Inject the full-animation emblem (starts hidden, JS fades it in).
 document.querySelector('.lockup:not(.lockup--hover)').appendChild(makeEmblemSvg('logo-emblem'));
 
-// Inject the hover variant emblem (starts visible, CSS hides it on hover).
+const HOVER_LAYER_MS = {
+  vertical: 2800,
+  wrap: 2400,
+  flip: 2000,
+  diamond: 2400,
+};
+// Near-linear settle with a soft ease-out tail, so ovals decelerate gently at the end.
+const HOVER_SETTLE_EASE = 'cubic-bezier(0.2, 0.2, 0.8, 1)';
+const HOVER_EXIT_SWAP_MS = 140;
+
+// Inject the hover variant emblem and wire hover->settle behavior.
 function initHoverLogo() {
   const hoverLockup = document.querySelector('.lockup--hover');
   if (!hoverLockup) return;
   hoverLockup.appendChild(makeEmblemSvg('hover-emblem'));
+
+  let finishTimer = null;
+  let settleRaf = 0;
+  let exitSwapTimer = null;
+  let hoverPhase = 'idle'; // idle | active | settling
+  let pendingRestart = false;
+  let hoverStartAt = 0;
+
+  function getOrb() {
+    return hoverLockup.querySelector('.hover-orb-logo');
+  }
+
+  function clearFinishWait() {
+    if (finishTimer) {
+      clearTimeout(finishTimer);
+      finishTimer = null;
+    }
+    if (settleRaf) {
+      cancelAnimationFrame(settleRaf);
+      settleRaf = 0;
+    }
+  }
+
+  function clearExitSwap() {
+    if (exitSwapTimer) {
+      clearTimeout(exitSwapTimer);
+      exitSwapTimer = null;
+    }
+    hoverLockup.classList.remove('hover-orb-exit');
+  }
+
+  function getHoverLayers() {
+    const orb = getOrb();
+    if (!orb) return null;
+    return {
+      vertical: orb.querySelector('.vertical-oval'),
+      wrap: orb.querySelector('.horizontal-oval-wrap'),
+      flip: orb.querySelector('.horizontal-oval'),
+      diamond: orb.querySelector('.diamond'),
+    };
+  }
+
+  function clearInlineMotion(layers) {
+    Object.values(layers).forEach((el) => {
+      if (!el) return;
+      el.style.removeProperty('animation');
+      el.style.removeProperty('transition');
+      el.style.removeProperty('transform');
+    });
+  }
+
+  function getCycleState(elapsed, duration) {
+    const phase = ((elapsed % duration) + duration) % duration;
+    const remaining = phase === 0 ? duration : duration - phase;
+    return { progress: phase / duration, remaining };
+  }
+
+  function setIdle() {
+    clearFinishWait();
+    const layers = getHoverLayers();
+    if (layers) clearInlineMotion(layers);
+    hoverPhase = 'idle';
+    const shouldRestart = pendingRestart || hoverLockup.matches(':hover');
+    pendingRestart = false;
+    // If pointer is over the lockup when settling ends, restart from frame 0.
+    if (shouldRestart) {
+      clearExitSwap();
+      startHoverCycle();
+      return;
+    }
+    hoverLockup.classList.add('hover-orb-exit');
+    hoverLockup.classList.remove('hover-orb-active');
+    exitSwapTimer = setTimeout(() => {
+      hoverLockup.classList.remove('hover-orb-exit');
+      exitSwapTimer = null;
+    }, HOVER_EXIT_SWAP_MS);
+  }
+
+  function restartOrb() {
+    const orb = getOrb();
+    if (!orb) return;
+    const clone = orb.cloneNode(true);
+    orb.replaceWith(clone);
+  }
+
+  function startHoverCycle() {
+    if (hoverPhase !== 'idle') return;
+    clearFinishWait();
+    clearExitSwap();
+    pendingRestart = false;
+    hoverPhase = 'active';
+    hoverStartAt = Date.now();
+    // Force a clean re-prime so every entry starts from frame 0.
+    hoverLockup.classList.remove('hover-orb-active');
+    restartOrb();
+    void hoverLockup.getBoundingClientRect();
+    hoverLockup.classList.add('hover-orb-active');
+  }
+
+  hoverLockup.addEventListener('mouseenter', () => {
+    if (hoverPhase === 'idle') {
+      startHoverCycle();
+      return;
+    }
+    // If user re-enters during settle, queue a restart after settle completes.
+    if (hoverPhase === 'settling') {
+      pendingRestart = true;
+    }
+    // If already active, do nothing (do not restart mid-run).
+  });
+
+  hoverLockup.addEventListener('mouseleave', () => {
+    if (hoverPhase === 'settling') {
+      pendingRestart = false;
+      return;
+    }
+    if (hoverPhase !== 'active' || !hoverLockup.classList.contains('hover-orb-active')) return;
+    hoverPhase = 'settling';
+    pendingRestart = false;
+    const layers = getHoverLayers();
+    if (!layers || !layers.vertical || !layers.wrap || !layers.flip || !layers.diamond) {
+      setIdle();
+      return;
+    }
+
+    const elapsed = Math.max(0, Date.now() - hoverStartAt);
+    const v = getCycleState(elapsed, HOVER_LAYER_MS.vertical);
+    const w = getCycleState(elapsed, HOVER_LAYER_MS.wrap);
+    const f = getCycleState(elapsed, HOVER_LAYER_MS.flip);
+    const d = getCycleState(elapsed, HOVER_LAYER_MS.diamond);
+
+    // Keep vertical/diamond moving when horizontal still has significantly more to finish.
+    const horizontalSettleMs = Math.max(w.remaining, f.remaining);
+    const extendToFloor = (remaining, period, floor) => {
+      if (remaining >= floor) return remaining;
+      return remaining + Math.ceil((floor - remaining) / period) * period;
+    };
+
+    const vDuration = extendToFloor(v.remaining, HOVER_LAYER_MS.vertical, horizontalSettleMs);
+    const wDuration = w.remaining;
+    const fDuration = f.remaining;
+    const dDuration = extendToFloor(d.remaining, HOVER_LAYER_MS.diamond, horizontalSettleMs);
+
+    const vExtraTurns = Math.round((vDuration - v.remaining) / HOVER_LAYER_MS.vertical);
+    const dExtraTurns = Math.round((dDuration - d.remaining) / HOVER_LAYER_MS.diamond);
+
+    // Continue forward to each layer's cycle end (no rewind), then settle at rest.
+    const targets = [
+      {
+        el: layers.vertical,
+        from: `rotateY(${(v.progress * 360).toFixed(3)}deg)`,
+        to: `rotateY(${360 + vExtraTurns * 360}deg)`,
+        duration: vDuration,
+      },
+      {
+        el: layers.wrap,
+        from: `rotate(${(w.progress * 360).toFixed(3)}deg)`,
+        to: 'rotate(360deg)',
+        duration: wDuration,
+      },
+      {
+        el: layers.flip,
+        from: `rotateX(${(-360 + f.progress * 360).toFixed(3)}deg)`,
+        to: 'rotateX(0deg)',
+        duration: fDuration,
+      },
+      {
+        el: layers.diamond,
+        from: `rotate(${(-90 - d.progress * 180).toFixed(3)}deg)`,
+        to: `rotate(${-270 - dExtraTurns * 180}deg)`,
+        duration: dDuration,
+      },
+    ];
+
+    targets.forEach(({ el, from }) => {
+      el.style.animation = 'none';
+      el.style.transition = 'none';
+      el.style.transform = from;
+    });
+
+    // Force style flush so the browser commits the frozen transforms.
+    void layers.vertical.getBoundingClientRect();
+
+    settleRaf = requestAnimationFrame(() => {
+      settleRaf = 0;
+      targets.forEach(({ el, to, duration }) => {
+        el.style.transition = `transform ${duration}ms ${HOVER_SETTLE_EASE}`;
+        el.style.transform = to;
+      });
+      const maxRemaining = Math.max(...targets.map((t) => t.duration));
+      finishTimer = setTimeout(setIdle, maxRemaining + 40);
+    });
+  });
 }
 
 buildControls();

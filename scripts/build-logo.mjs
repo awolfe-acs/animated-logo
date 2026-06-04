@@ -230,6 +230,7 @@ ${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="currentColor" />`).join('\n'
 const HOVER_CYCLE_VERT = 2800;
 const HOVER_CYCLE_WRAP = 2400;
 const HOVER_CYCLE_FLIP = 1600;
+const HOVER_CYCLE_DIAMOND = 2400;
 
 const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label="ACS">
   <style>
@@ -259,7 +260,7 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
       transform-style: preserve-3d;
       opacity: 0;
       animation: none;
-      transition: opacity 150ms ease;
+      transition: opacity 35ms linear;
     }
     .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
 
@@ -269,7 +270,7 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
       animation: none;
       transform: translateZ(0);
       will-change: opacity;
-      transition: opacity 150ms ease;
+      transition: opacity 55ms linear;
     }
     .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
 
@@ -288,7 +289,10 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
     .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
 
     /* Diamond stays at its arrived position */
-    .acs-logo--hover .acs-logo__diamond { transform: rotate(-90deg); }
+    .acs-logo--hover .acs-logo__diamond {
+      animation: none;
+      transform: rotate(-90deg);
+    }
 
     /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
     .acs-logo--hover .acs-logo__vertical-oval {
@@ -314,6 +318,9 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
     .acs-logo--hover:hover .acs-logo__hoval {
       animation: acs-hover-hoval ${HOVER_CYCLE_FLIP}ms linear infinite;
     }
+    .acs-logo--hover:hover .acs-logo__diamond {
+      animation: acs-hover-diamond ${HOVER_CYCLE_DIAMOND}ms cubic-bezier(0.42, 0, 0.58, 1) infinite;
+    }
 
     @keyframes acs-hover-vert {
       0%   { transform: rotateY(0deg); }
@@ -326,6 +333,10 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
     @keyframes acs-hover-hoval {
       0%   { transform: rotateX(-360deg); }
       100% { transform: rotateX(0deg); }
+    }
+    @keyframes acs-hover-diamond {
+      from { transform: rotate(-90deg); }
+      to   { transform: rotate(-270deg); }
     }
 
     @media (prefers-reduced-motion: reduce) {

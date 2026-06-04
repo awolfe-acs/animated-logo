@@ -1083,7 +1083,7 @@
             transform-style: preserve-3d;
             opacity: 0;
             animation: none;
-            transition: opacity 150ms ease;
+            transition: opacity 35ms linear;
           }
           .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
       
@@ -1093,7 +1093,7 @@
             animation: none;
             transform: translateZ(0);
             will-change: opacity;
-            transition: opacity 150ms ease;
+            transition: opacity 55ms linear;
           }
           .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
       
@@ -1112,7 +1112,10 @@
           .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
       
           /* Diamond stays at its arrived position */
-          .acs-logo--hover .acs-logo__diamond { transform: rotate(-90deg); }
+          .acs-logo--hover .acs-logo__diamond {
+            animation: none;
+            transform: rotate(-90deg);
+          }
       
           /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
           .acs-logo--hover .acs-logo__vertical-oval {
@@ -1121,7 +1124,7 @@
           }
           .acs-logo--hover .acs-logo__hwrap {
             animation: none;
-            transform: rotateY(0deg) rotate(0deg);
+            transform: rotate(0deg);
           }
           .acs-logo--hover .acs-logo__hoval {
             animation: none;
@@ -1133,10 +1136,13 @@
             animation: acs-hover-vert 2800ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hwrap {
-            animation: acs-hover-hwrap 2400ms ease-in-out infinite;
+            animation: acs-hover-hwrap 2400ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hoval {
-            animation: acs-hover-hoval 1600ms ease-in-out alternate infinite;
+            animation: acs-hover-hoval 1600ms linear infinite;
+          }
+          .acs-logo--hover:hover .acs-logo__diamond {
+            animation: acs-hover-diamond 2400ms cubic-bezier(0.42, 0, 0.58, 1) infinite;
           }
       
           @keyframes acs-hover-vert {
@@ -1144,13 +1150,16 @@
             100% { transform: rotateY(360deg); }
           }
           @keyframes acs-hover-hwrap {
-            0%, 100% { transform: rotateY(0deg) rotate(0deg); }
-            50%       { transform: rotateY(90deg) rotate(-90deg); }
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
           }
-          /* alternate: -360deg ↔ 0deg — each half = one full 360° revolution */
           @keyframes acs-hover-hoval {
-            from { transform: rotateX(-360deg); }
-            to   { transform: rotateX(0deg); }
+            0%   { transform: rotateX(-360deg); }
+            100% { transform: rotateX(0deg); }
+          }
+          @keyframes acs-hover-diamond {
+            from { transform: rotate(-90deg); }
+            to   { transform: rotate(-270deg); }
           }
       
           @media (prefers-reduced-motion: reduce) {
@@ -1221,7 +1230,7 @@
             transform-style: preserve-3d;
             opacity: 0;
             animation: none;
-            transition: opacity 150ms ease;
+            transition: opacity 35ms linear;
           }
           .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
       
@@ -1231,7 +1240,7 @@
             animation: none;
             transform: translateZ(0);
             will-change: opacity;
-            transition: opacity 150ms ease;
+            transition: opacity 55ms linear;
           }
           .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
       
@@ -1250,7 +1259,10 @@
           .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
       
           /* Diamond stays at its arrived position */
-          .acs-logo--hover .acs-logo__diamond { transform: rotate(-90deg); }
+          .acs-logo--hover .acs-logo__diamond {
+            animation: none;
+            transform: rotate(-90deg);
+          }
       
           /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
           .acs-logo--hover .acs-logo__vertical-oval {
@@ -1259,7 +1271,7 @@
           }
           .acs-logo--hover .acs-logo__hwrap {
             animation: none;
-            transform: rotateY(0deg) rotate(0deg);
+            transform: rotate(0deg);
           }
           .acs-logo--hover .acs-logo__hoval {
             animation: none;
@@ -1271,10 +1283,13 @@
             animation: acs-hover-vert 2800ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hwrap {
-            animation: acs-hover-hwrap 2400ms ease-in-out infinite;
+            animation: acs-hover-hwrap 2400ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hoval {
-            animation: acs-hover-hoval 1600ms ease-in-out alternate infinite;
+            animation: acs-hover-hoval 1600ms linear infinite;
+          }
+          .acs-logo--hover:hover .acs-logo__diamond {
+            animation: acs-hover-diamond 2400ms cubic-bezier(0.42, 0, 0.58, 1) infinite;
           }
       
           @keyframes acs-hover-vert {
@@ -1282,13 +1297,16 @@
             100% { transform: rotateY(360deg); }
           }
           @keyframes acs-hover-hwrap {
-            0%, 100% { transform: rotateY(0deg) rotate(0deg); }
-            50%       { transform: rotateY(90deg) rotate(-90deg); }
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
           }
-          /* alternate: -360deg ↔ 0deg — each half = one full 360° revolution */
           @keyframes acs-hover-hoval {
-            from { transform: rotateX(-360deg); }
-            to   { transform: rotateX(0deg); }
+            0%   { transform: rotateX(-360deg); }
+            100% { transform: rotateX(0deg); }
+          }
+          @keyframes acs-hover-diamond {
+            from { transform: rotate(-90deg); }
+            to   { transform: rotate(-270deg); }
           }
       
           @media (prefers-reduced-motion: reduce) {
@@ -1362,7 +1380,7 @@
             transform-style: preserve-3d;
             opacity: 0;
             animation: none;
-            transition: opacity 150ms ease;
+            transition: opacity 35ms linear;
           }
           .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
       
@@ -1372,7 +1390,7 @@
             animation: none;
             transform: translateZ(0);
             will-change: opacity;
-            transition: opacity 150ms ease;
+            transition: opacity 55ms linear;
           }
           .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
       
@@ -1391,7 +1409,10 @@
           .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
       
           /* Diamond stays at its arrived position */
-          .acs-logo--hover .acs-logo__diamond { transform: rotate(-90deg); }
+          .acs-logo--hover .acs-logo__diamond {
+            animation: none;
+            transform: rotate(-90deg);
+          }
       
           /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
           .acs-logo--hover .acs-logo__vertical-oval {
@@ -1400,7 +1421,7 @@
           }
           .acs-logo--hover .acs-logo__hwrap {
             animation: none;
-            transform: rotateY(0deg) rotate(0deg);
+            transform: rotate(0deg);
           }
           .acs-logo--hover .acs-logo__hoval {
             animation: none;
@@ -1412,10 +1433,13 @@
             animation: acs-hover-vert 2800ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hwrap {
-            animation: acs-hover-hwrap 2400ms ease-in-out infinite;
+            animation: acs-hover-hwrap 2400ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hoval {
-            animation: acs-hover-hoval 1600ms ease-in-out alternate infinite;
+            animation: acs-hover-hoval 1600ms linear infinite;
+          }
+          .acs-logo--hover:hover .acs-logo__diamond {
+            animation: acs-hover-diamond 2400ms cubic-bezier(0.42, 0, 0.58, 1) infinite;
           }
       
           @keyframes acs-hover-vert {
@@ -1423,13 +1447,16 @@
             100% { transform: rotateY(360deg); }
           }
           @keyframes acs-hover-hwrap {
-            0%, 100% { transform: rotateY(0deg) rotate(0deg); }
-            50%       { transform: rotateY(90deg) rotate(-90deg); }
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
           }
-          /* alternate: -360deg ↔ 0deg — each half = one full 360° revolution */
           @keyframes acs-hover-hoval {
-            from { transform: rotateX(-360deg); }
-            to   { transform: rotateX(0deg); }
+            0%   { transform: rotateX(-360deg); }
+            100% { transform: rotateX(0deg); }
+          }
+          @keyframes acs-hover-diamond {
+            from { transform: rotate(-90deg); }
+            to   { transform: rotate(-270deg); }
           }
       
           @media (prefers-reduced-motion: reduce) {
@@ -1500,7 +1527,7 @@
             transform-style: preserve-3d;
             opacity: 0;
             animation: none;
-            transition: opacity 150ms ease;
+            transition: opacity 35ms linear;
           }
           .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
       
@@ -1510,7 +1537,7 @@
             animation: none;
             transform: translateZ(0);
             will-change: opacity;
-            transition: opacity 150ms ease;
+            transition: opacity 55ms linear;
           }
           .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
       
@@ -1529,7 +1556,10 @@
           .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
       
           /* Diamond stays at its arrived position */
-          .acs-logo--hover .acs-logo__diamond { transform: rotate(-90deg); }
+          .acs-logo--hover .acs-logo__diamond {
+            animation: none;
+            transform: rotate(-90deg);
+          }
       
           /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
           .acs-logo--hover .acs-logo__vertical-oval {
@@ -1538,7 +1568,7 @@
           }
           .acs-logo--hover .acs-logo__hwrap {
             animation: none;
-            transform: rotateY(0deg) rotate(0deg);
+            transform: rotate(0deg);
           }
           .acs-logo--hover .acs-logo__hoval {
             animation: none;
@@ -1550,10 +1580,13 @@
             animation: acs-hover-vert 2800ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hwrap {
-            animation: acs-hover-hwrap 2400ms ease-in-out infinite;
+            animation: acs-hover-hwrap 2400ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hoval {
-            animation: acs-hover-hoval 1600ms ease-in-out alternate infinite;
+            animation: acs-hover-hoval 1600ms linear infinite;
+          }
+          .acs-logo--hover:hover .acs-logo__diamond {
+            animation: acs-hover-diamond 2400ms cubic-bezier(0.42, 0, 0.58, 1) infinite;
           }
       
           @keyframes acs-hover-vert {
@@ -1561,13 +1594,16 @@
             100% { transform: rotateY(360deg); }
           }
           @keyframes acs-hover-hwrap {
-            0%, 100% { transform: rotateY(0deg) rotate(0deg); }
-            50%       { transform: rotateY(90deg) rotate(-90deg); }
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
           }
-          /* alternate: -360deg ↔ 0deg — each half = one full 360° revolution */
           @keyframes acs-hover-hoval {
-            from { transform: rotateX(-360deg); }
-            to   { transform: rotateX(0deg); }
+            0%   { transform: rotateX(-360deg); }
+            100% { transform: rotateX(0deg); }
+          }
+          @keyframes acs-hover-diamond {
+            from { transform: rotate(-90deg); }
+            to   { transform: rotate(-270deg); }
           }
       
           @media (prefers-reduced-motion: reduce) {
@@ -1641,7 +1677,7 @@
             transform-style: preserve-3d;
             opacity: 0;
             animation: none;
-            transition: opacity 150ms ease;
+            transition: opacity 35ms linear;
           }
           .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
       
@@ -1651,7 +1687,7 @@
             animation: none;
             transform: translateZ(0);
             will-change: opacity;
-            transition: opacity 150ms ease;
+            transition: opacity 55ms linear;
           }
           .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
       
@@ -1670,7 +1706,10 @@
           .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
       
           /* Diamond stays at its arrived position */
-          .acs-logo--hover .acs-logo__diamond { transform: rotate(-90deg); }
+          .acs-logo--hover .acs-logo__diamond {
+            animation: none;
+            transform: rotate(-90deg);
+          }
       
           /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
           .acs-logo--hover .acs-logo__vertical-oval {
@@ -1679,7 +1718,7 @@
           }
           .acs-logo--hover .acs-logo__hwrap {
             animation: none;
-            transform: rotateY(0deg) rotate(0deg);
+            transform: rotate(0deg);
           }
           .acs-logo--hover .acs-logo__hoval {
             animation: none;
@@ -1691,10 +1730,13 @@
             animation: acs-hover-vert 2800ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hwrap {
-            animation: acs-hover-hwrap 2400ms ease-in-out infinite;
+            animation: acs-hover-hwrap 2400ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hoval {
-            animation: acs-hover-hoval 1600ms ease-in-out alternate infinite;
+            animation: acs-hover-hoval 1600ms linear infinite;
+          }
+          .acs-logo--hover:hover .acs-logo__diamond {
+            animation: acs-hover-diamond 2400ms cubic-bezier(0.42, 0, 0.58, 1) infinite;
           }
       
           @keyframes acs-hover-vert {
@@ -1702,13 +1744,16 @@
             100% { transform: rotateY(360deg); }
           }
           @keyframes acs-hover-hwrap {
-            0%, 100% { transform: rotateY(0deg) rotate(0deg); }
-            50%       { transform: rotateY(90deg) rotate(-90deg); }
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
           }
-          /* alternate: -360deg ↔ 0deg — each half = one full 360° revolution */
           @keyframes acs-hover-hoval {
-            from { transform: rotateX(-360deg); }
-            to   { transform: rotateX(0deg); }
+            0%   { transform: rotateX(-360deg); }
+            100% { transform: rotateX(0deg); }
+          }
+          @keyframes acs-hover-diamond {
+            from { transform: rotate(-90deg); }
+            to   { transform: rotate(-270deg); }
           }
       
           @media (prefers-reduced-motion: reduce) {
@@ -1779,7 +1824,7 @@
             transform-style: preserve-3d;
             opacity: 0;
             animation: none;
-            transition: opacity 150ms ease;
+            transition: opacity 35ms linear;
           }
           .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
       
@@ -1789,7 +1834,7 @@
             animation: none;
             transform: translateZ(0);
             will-change: opacity;
-            transition: opacity 150ms ease;
+            transition: opacity 55ms linear;
           }
           .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
       
@@ -1808,7 +1853,10 @@
           .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
       
           /* Diamond stays at its arrived position */
-          .acs-logo--hover .acs-logo__diamond { transform: rotate(-90deg); }
+          .acs-logo--hover .acs-logo__diamond {
+            animation: none;
+            transform: rotate(-90deg);
+          }
       
           /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
           .acs-logo--hover .acs-logo__vertical-oval {
@@ -1817,7 +1865,7 @@
           }
           .acs-logo--hover .acs-logo__hwrap {
             animation: none;
-            transform: rotateY(0deg) rotate(0deg);
+            transform: rotate(0deg);
           }
           .acs-logo--hover .acs-logo__hoval {
             animation: none;
@@ -1829,10 +1877,13 @@
             animation: acs-hover-vert 2800ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hwrap {
-            animation: acs-hover-hwrap 2400ms ease-in-out infinite;
+            animation: acs-hover-hwrap 2400ms linear infinite;
           }
           .acs-logo--hover:hover .acs-logo__hoval {
-            animation: acs-hover-hoval 1600ms ease-in-out alternate infinite;
+            animation: acs-hover-hoval 1600ms linear infinite;
+          }
+          .acs-logo--hover:hover .acs-logo__diamond {
+            animation: acs-hover-diamond 2400ms cubic-bezier(0.42, 0, 0.58, 1) infinite;
           }
       
           @keyframes acs-hover-vert {
@@ -1840,13 +1891,16 @@
             100% { transform: rotateY(360deg); }
           }
           @keyframes acs-hover-hwrap {
-            0%, 100% { transform: rotateY(0deg) rotate(0deg); }
-            50%       { transform: rotateY(90deg) rotate(-90deg); }
+            from { transform: rotate(0deg); }
+            to   { transform: rotate(360deg); }
           }
-          /* alternate: -360deg ↔ 0deg — each half = one full 360° revolution */
           @keyframes acs-hover-hoval {
-            from { transform: rotateX(-360deg); }
-            to   { transform: rotateX(0deg); }
+            0%   { transform: rotateX(-360deg); }
+            100% { transform: rotateX(0deg); }
+          }
+          @keyframes acs-hover-diamond {
+            from { transform: rotate(-90deg); }
+            to   { transform: rotate(-270deg); }
           }
       
           @media (prefers-reduced-motion: reduce) {
