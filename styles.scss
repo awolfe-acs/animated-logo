@@ -19,33 +19,65 @@ body {
 
 .stage {
   flex: 1;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #f8f8f8;
   transition: background 300ms ease;
 
   &.stage--dark { background: #1a1a1a; }
 }
 
-// ── Logo ──────────────────────────────────────────────────────────────────────
+// ── Logo layout ───────────────────────────────────────────────────────────────
 
-// The full lockup (emblem + ACS wordmark) is 159×40 natively; centered & scaled here.
+.logo-rows {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+
+.logo-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.stage-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #888;
+  .stage--dark & { color: #555; }
+}
+
+// Reserve exactly the visual space of scale(3) so flex layout works correctly.
+.lockup-scale-container {
+  width: 477px;   // 159px × 3
+  height: 120px;  // 40px × 3
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// The full lockup (emblem + ACS wordmark) is 159×40 natively.
 .lockup {
   --acs-color: #251f20;
-  position: absolute;
-  top: 50%;
-  left: 50%;
+  position: relative;
   width: 159px;
   height: 40px;
-  // color drives currentColor on every SVG child (orb strokes, fills, emblem, text)
+  // color drives currentColor on every SVG child
   color: var(--acs-color);
-  // 159u lockup is far wider than the emblem alone; scale down so it fits the stage
-  transform: translate(-50%, -50%) scale(3);
+  transform: scale(3);
   transform-origin: center;
 }
 
 // Emblem, orb, and wordmark all share the lockup's coordinate space at its origin.
 .lockup .logo-emblem,
 .lockup .orb-logo,
+.lockup .hover-orb-logo,
 .lockup .acs-text {
   position: absolute;
   top: 0;
@@ -79,6 +111,100 @@ body {
 
   &.visible {
     opacity: 1;
+  }
+}
+
+// ── Hover text paths (hover variant — always fully revealed) ──────────────────
+
+.hover-text-paths {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+// ── Hover emblem (hover variant — visible by default, hides on hover) ─────────
+
+.hover-emblem {
+  width: 40px;
+  height: 40px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  opacity: 1;
+  transform: translateZ(0);
+  will-change: opacity;
+  transition: opacity 150ms ease;
+}
+
+// ── Hover orb (hover variant — hidden by default, shown on hover) ─────────────
+
+.hover-orb-logo {
+  overflow: visible;
+  perspective: 120px;
+  transform-style: preserve-3d;
+  opacity: 0;
+  transition: opacity 150ms ease;
+
+  // Layers share base rules with .orb-logo
+  .layer {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform-style: preserve-3d;
+    animation-fill-mode: both;
+  }
+
+  .horizontal-oval-wrap {
+    transform-box: view-box;
+    transform-origin: center;
+  }
+
+  // Non-animating layers — explicit animation: none + transform: none prevents the
+  // SVG presentation attribute (transform="rotate(-90 20 20)") from leaking through
+  // into the preserve-3d / perspective context and displacing the element.
+  .outer-circle { animation: none; transform: none; }
+  .diamond-wrap  { animation: none; transform: none; }
+
+  // Arrived state for layers that don't animate on hover (stay in final position)
+  .diamond { animation: none; transform: rotate(-90deg); }
+}
+
+// ── Hover variant behaviour ───────────────────────────────────────────────────
+
+.lockup--hover {
+  cursor: pointer;
+
+  &:hover {
+    .hover-orb-logo { opacity: 1; }
+    .hover-emblem   { opacity: 0; }
+
+    // Animations only while hovered — each enter restarts from 0% (unlike play-state: paused).
+    .hover-orb-logo {
+      .vertical-oval {
+        animation: hover-vert-orbit 2800ms linear infinite;
+      }
+      .horizontal-oval-wrap {
+        animation: hover-h-orbit-2d 2400ms linear infinite;
+      }
+      .horizontal-oval {
+        animation: hover-h-orbit-3d 2000ms linear infinite;
+      }
+    }
+  }
+
+  // Resting "arrived" pose when not hovered (matches keyframe 0% / visual end state).
+  .hover-orb-logo {
+    .vertical-oval {
+      animation: none;
+      transform: rotateY(0deg);
+    }
+    .horizontal-oval-wrap {
+      animation: none;
+      transform: rotate(0deg);
+    }
+    .horizontal-oval {
+      animation: none;
+      transform: rotateX(0deg);
+    }
   }
 }
 
@@ -180,9 +306,33 @@ body {
   to   { transform: rotate(-90deg); }
 }
 
+// ── Hover animation keyframes ─────────────────────────────────────────────────
+// All three start from the orb's "arrived" resting position so the hover
+// animation begins seamlessly from the static-emblem visual state.
+
+// Vertical oval: continuous full-circle spin.
+@keyframes hover-vert-orbit {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+// H-oval wrapper: flat 2D spin only — avoids rotateY + rotateX double foreshortening.
+@keyframes hover-h-orbit-2d {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+// H-oval child: 3D backflip only (wrapper handles in-plane rotation).
+@keyframes hover-h-orbit-3d {
+  0%   { transform: rotateX(-360deg); }
+  100% { transform: rotateX(0deg); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .orb-logo .layer,
-  .orb-logo .horizontal-oval-wrap {
+  .orb-logo .horizontal-oval-wrap,
+  .hover-orb-logo .layer,
+  .hover-orb-logo .horizontal-oval-wrap {
     animation: none;
   }
 }

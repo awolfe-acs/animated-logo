@@ -456,19 +456,32 @@ function buildControls() {
   panel.appendChild(btn);
 }
 
-// Inject the emblem as an inline SVG so it inherits currentColor from .lockup.
-// Replace hardcoded fill values with currentColor before injection.
-const emblemDiv = document.createElement('div');
-emblemDiv.innerHTML = emblemRaw
-  .replace(/fill="#251F20"/gi, 'fill="currentColor"')
-  .replace(/stroke="#251F20"/gi, 'stroke="currentColor"');
-const emblemSvg = emblemDiv.firstElementChild;
-emblemSvg.setAttribute('class', 'logo-emblem');
-emblemSvg.setAttribute('width', '40');
-emblemSvg.setAttribute('height', '40');
-emblemSvg.setAttribute('aria-hidden', 'true');
-emblemSvg.setAttribute('shape-rendering', 'geometricPrecision');
-document.querySelector('.lockup').appendChild(emblemSvg);
+// ── Emblem SVG helpers ────────────────────────────────────────────────────────
+
+function makeEmblemSvg(cls) {
+  const div = document.createElement('div');
+  div.innerHTML = emblemRaw
+    .replace(/fill="#251F20"/gi, 'fill="currentColor"')
+    .replace(/stroke="#251F20"/gi, 'stroke="currentColor"');
+  const svg = div.firstElementChild;
+  svg.setAttribute('class', cls);
+  svg.setAttribute('width', '40');
+  svg.setAttribute('height', '40');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('shape-rendering', 'geometricPrecision');
+  return svg;
+}
+
+// Inject the full-animation emblem (starts hidden, JS fades it in).
+document.querySelector('.lockup:not(.lockup--hover)').appendChild(makeEmblemSvg('logo-emblem'));
+
+// Inject the hover variant emblem (starts visible, CSS hides it on hover).
+function initHoverLogo() {
+  const hoverLockup = document.querySelector('.lockup--hover');
+  if (!hoverLockup) return;
+  hoverLockup.appendChild(makeEmblemSvg('hover-emblem'));
+}
 
 buildControls();
+initHoverLogo();
 restartAnimation();

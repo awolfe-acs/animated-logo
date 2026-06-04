@@ -223,13 +223,155 @@ ${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="currentColor" />`).join('\n'
   </svg>
 </div>`;
 
+// ── Hover variant block ──────────────────────────────────────────────────────────
+// A self-contained logo that shows the static emblem + text by default and plays
+// a continuous orbit loop on :hover. No JS required.
+
+const HOVER_CYCLE_VERT = 2800;
+const HOVER_CYCLE_WRAP = 2400;
+const HOVER_CYCLE_FLIP = 1600;
+
+const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label="ACS">
+  <style>
+    /* ===== ACS hover logo — static by default, animates on hover ===== */
+    .acs-logo--hover {
+      --acs-cycle: ${masterCycle}ms;
+      position: relative;
+      display: inline-block;
+      width: var(--acs-size, 159px);
+      aspect-ratio: 159 / 40;
+      vertical-align: middle;
+      color: var(--acs-color, #251f20);
+      cursor: pointer;
+    }
+    .acs-logo--hover .acs-logo__text,
+    .acs-logo--hover .acs-logo__orb,
+    .acs-logo--hover .acs-logo__emblem {
+      position: absolute; top: 0; left: 0; overflow: visible;
+    }
+    .acs-logo--hover .acs-logo__text { width: 100%; height: 100%; }
+    .acs-logo--hover .acs-logo__orb,
+    .acs-logo--hover .acs-logo__emblem { width: calc(100% * 40 / 159); height: 100%; }
+
+    /* Orb: hidden by default, shown on hover */
+    .acs-logo--hover .acs-logo__orb {
+      perspective: calc(var(--acs-size, 159px) * 120 / 159);
+      transform-style: preserve-3d;
+      opacity: 0;
+      animation: none;
+      transition: opacity 150ms ease;
+    }
+    .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
+
+    /* Emblem: visible by default, hides on hover */
+    .acs-logo--hover .acs-logo__emblem {
+      opacity: 1;
+      animation: none;
+      transform: translateZ(0);
+      will-change: opacity;
+      transition: opacity 150ms ease;
+    }
+    .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
+
+    /* Text: always fully visible */
+    .acs-logo--hover .acs-logo__textpaths {
+      opacity: 1;
+      transform: translateX(0);
+      animation: none;
+    }
+
+    .acs-logo--hover .acs-logo__layer {
+      transform-box: fill-box;
+      transform-origin: center;
+      transform-style: preserve-3d;
+    }
+    .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
+
+    /* Diamond stays at its arrived position */
+    .acs-logo--hover .acs-logo__diamond { transform: rotate(-90deg); }
+
+    /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
+    .acs-logo--hover .acs-logo__vertical-oval {
+      animation: none;
+      transform: rotateY(0deg);
+    }
+    .acs-logo--hover .acs-logo__hwrap {
+      animation: none;
+      transform: rotate(0deg);
+    }
+    .acs-logo--hover .acs-logo__hoval {
+      animation: none;
+      transform: rotateX(0deg);
+    }
+
+    /* Hover orbit animations — only while :hover */
+    .acs-logo--hover:hover .acs-logo__vertical-oval {
+      animation: acs-hover-vert ${HOVER_CYCLE_VERT}ms linear infinite;
+    }
+    .acs-logo--hover:hover .acs-logo__hwrap {
+      animation: acs-hover-hwrap ${HOVER_CYCLE_WRAP}ms linear infinite;
+    }
+    .acs-logo--hover:hover .acs-logo__hoval {
+      animation: acs-hover-hoval ${HOVER_CYCLE_FLIP}ms linear infinite;
+    }
+
+    @keyframes acs-hover-vert {
+      0%   { transform: rotateY(0deg); }
+      100% { transform: rotateY(360deg); }
+    }
+    @keyframes acs-hover-hwrap {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    @keyframes acs-hover-hoval {
+      0%   { transform: rotateX(-360deg); }
+      100% { transform: rotateX(0deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .acs-logo--hover .acs-logo__orb { display: none; }
+      .acs-logo--hover:hover .acs-logo__emblem { opacity: 1; }
+    }
+  </style>
+
+  <!-- ACS wordmark — always visible -->
+  <svg class="acs-logo__text" viewBox="0 0 159 40" fill="none" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="acs-hover-clip">
+        <path clip-rule="evenodd" d="${CLIP_PATH}" />
+      </clipPath>
+    </defs>
+    <g clip-path="url(#acs-hover-clip)">
+      <g class="acs-logo__textpaths">
+${TEXT_PATHS.map((d) => `        <path d="${d}" fill="currentColor" />`).join('\n')}
+      </g>
+    </g>
+  </svg>
+
+  <!-- Hover orb (shown on hover, continuous loop starting from arrived state) -->
+  <svg class="acs-logo__orb" viewBox="0 0 40 40" fill="none" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg">
+    <circle class="acs-logo__layer acs-logo__outer-circle" cx="20" cy="20" r="19.075" transform="rotate(-90 20 20)" stroke="currentColor" stroke-width="1.85" />
+    <path class="acs-logo__layer acs-logo__vertical-oval" d="M20 0.924805C22.8611 0.924805 25.6097 2.8629 27.6924 6.33398C29.7639 9.78664 31.0752 14.6161 31.0752 20C31.0752 25.3839 29.7639 30.2134 27.6924 33.666C25.6097 37.1371 22.8611 39.0752 20 39.0752C17.1389 39.0752 14.3903 37.1371 12.3076 33.666C10.2361 30.2134 8.9248 25.3839 8.9248 20C8.9248 14.6161 10.2361 9.78664 12.3076 6.33398C14.3903 2.8629 17.1389 0.924805 20 0.924805Z" stroke="currentColor" stroke-width="1.85" />
+    <g class="acs-logo__layer acs-logo__hwrap">
+      <path class="acs-logo__layer acs-logo__hoval" d="M0.924804 20C0.924804 17.1389 2.8629 14.3903 6.33398 12.3076C9.78664 10.2361 14.6161 8.9248 20 8.9248C25.3839 8.9248 30.2134 10.2361 33.666 12.3076C37.1371 14.3903 39.0752 17.1389 39.0752 20C39.0752 22.8611 37.1371 25.6097 33.666 27.6924C30.2134 29.7639 25.3839 31.0752 20 31.0752C14.6161 31.0752 9.78664 29.7639 6.33398 27.6924C2.8629 25.6097 0.924804 22.8611 0.924804 20Z" stroke="currentColor" stroke-width="1.85" />
+    </g>
+    <g class="acs-logo__layer acs-logo__dwrap">
+      <path class="acs-logo__layer acs-logo__diamond" d="M21.1511 14.9722C20.5153 14.3364 19.4844 14.3364 18.8486 14.9722L14.972 18.8488C14.3362 19.4846 14.3362 20.5156 14.972 21.1513L18.8486 25.028C19.4844 25.6637 20.5153 25.6637 21.1511 25.028L25.0277 21.1513C25.6635 20.5156 25.6635 19.4846 25.0277 18.8488L21.1511 14.9722Z" fill="currentColor" />
+    </g>
+  </svg>
+
+  <!-- Static emblem — visible by default, hides on hover -->
+  <svg class="acs-logo__emblem" viewBox="0 0 40 40" fill="none" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg">
+${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="currentColor" />`).join('\n')}
+  </svg>
+</div>`;
+
 // ── Demo page wrapper ────────────────────────────────────────────────────────────
 
-// Helper: stamp a class + optional --acs-color override onto the block wrapper
-const instance = (cls, color) => block
-  .replace(/^/gm, '    ')
-  .replace('class="acs-logo"', `class="acs-logo ${cls}"`)
-  + (color ? `\n    <style>.acs-logo.${cls.split(' ').find(c => c === 'black' || c === 'blue')} { --acs-color: ${color}; }</style>` : '');
+// Stamp a size + color class onto a block string
+const stamp = (src, size, color) =>
+  src.replace(/^/gm, '      ')
+     .replace(/(class="acs-logo(?:--hover)?)"/, `$1 ${size} ${color}"`);
 
 const page = `<!DOCTYPE html>
 <html lang="en">
@@ -245,49 +387,72 @@ const page = `<!DOCTYPE html>
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 64px;
+        gap: 80px;
         background: #f8f8f8;
         font-family: system-ui, -apple-system, sans-serif;
         color: #999;
       }
+      h2 {
+        font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+        color: #bbb; margin: 0; padding-bottom: 32px; text-align: center;
+      }
+      .demo-section { display: flex; flex-direction: column; align-items: center; }
       .demo-note { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
       .demo-row  { display: flex; align-items: center; gap: 60px; }
       .demo-label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; width: 40px; text-align: right; flex-shrink: 0; }
-      /* Size helpers — override --acs-size; color helpers — override --acs-color */
       .big   { --acs-size: 400px; }
       .small { --acs-size: 158px; }
-      /* Override --acs-color with higher specificity than the block's .acs-logo rule */
-      .acs-logo.black { --acs-color: #251f20; }
-      .acs-logo.blue  { --acs-color: #412bfd; }
-      .acs-logo.white { --acs-color: #ffffff; }
-      /* Dark container for the white row so the logo is visible */
+      .acs-logo.black, .acs-logo--hover.black { --acs-color: #251f20; }
+      .acs-logo.blue,  .acs-logo--hover.blue  { --acs-color: #412bfd; }
+      .acs-logo.white, .acs-logo--hover.white  { --acs-color: #ffffff; }
       .demo-row--dark {
-        background: #1a1a1a;
-        border-radius: 16px;
-        padding: 40px 60px;
+        background: #1a1a1a; border-radius: 16px; padding: 40px 60px;
+        gap: 60px; display: flex; align-items: center;
       }
       .demo-row--dark .demo-label { color: rgba(255,255,255,0.25); }
     </style>
   </head>
   <body>
-    <div class="demo-note">Generated by npm run build:logo &middot; ${masterCycle}ms loop &middot; no JavaScript</div>
+    <div class="demo-note">Generated by npm run build:logo &middot; no JavaScript</div>
 
-    <div class="demo-row">
-      <span class="demo-label">Large</span>
-${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo big black"')}
-${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo big blue"')}
+    <!-- ── Full Animation ──────────────────────────────────────────────────── -->
+    <div class="demo-section">
+      <h2>Full Animation</h2>
+      <div class="demo-row" style="margin-bottom:32px">
+        <span class="demo-label">Large</span>
+${stamp(block, 'big', 'black')}
+${stamp(block, 'big', 'blue')}
+      </div>
+      <div class="demo-row" style="margin-bottom:32px">
+        <span class="demo-label">Small</span>
+${stamp(block, 'small', 'black')}
+${stamp(block, 'small', 'blue')}
+      </div>
+      <div class="demo-row--dark">
+        <span class="demo-label">White</span>
+${stamp(block, 'big', 'white')}
+${stamp(block, 'small', 'white')}
+      </div>
     </div>
 
-    <div class="demo-row">
-      <span class="demo-label">Small</span>
-${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo small black"')}
-${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo small blue"')}
-    </div>
-
-    <div class="demo-row demo-row--dark">
-      <span class="demo-label">White</span>
-${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo big white"')}
-${block.replace(/^/gm, '      ').replace('class="acs-logo"', 'class="acs-logo small white"')}
+    <!-- ── Hover Animation ─────────────────────────────────────────────────── -->
+    <div class="demo-section">
+      <h2>Hover to Animate</h2>
+      <div class="demo-row" style="margin-bottom:32px">
+        <span class="demo-label">Large</span>
+${stamp(hoverBlock, 'big', 'black')}
+${stamp(hoverBlock, 'big', 'blue')}
+      </div>
+      <div class="demo-row" style="margin-bottom:32px">
+        <span class="demo-label">Small</span>
+${stamp(hoverBlock, 'small', 'black')}
+${stamp(hoverBlock, 'small', 'blue')}
+      </div>
+      <div class="demo-row--dark">
+        <span class="demo-label">White</span>
+${stamp(hoverBlock, 'big', 'white')}
+${stamp(hoverBlock, 'small', 'white')}
+      </div>
     </div>
   </body>
 </html>
