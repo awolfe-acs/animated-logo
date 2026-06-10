@@ -18,8 +18,8 @@ const LAYERS = {
   },
   'horizontal-oval-wrap': {
     label: 'H. Oval — Spin',   // rotateY, horizontal-orbit-2d
-    defaultMult:  1.6,
-    defaultDelay: 100,
+    defaultMult:  1.8,
+    defaultDelay: 250,
   },
   'horizontal-oval': {
     label: 'H. Oval — Backflip', // rotateX, horizontal-orbit-3d
@@ -338,7 +338,9 @@ function buildControls() {
     btn.addEventListener('click', () => {
       swatchRow.querySelectorAll('.swatch-btn').forEach((b) => b.classList.remove('active'));
       btn.classList.add('active');
-      document.querySelector('.lockup').style.setProperty('--acs-color', value);
+      document.querySelectorAll('.lockup').forEach((lockup) => {
+        lockup.style.setProperty('--acs-color', value);
+      });
       // White needs a dark stage to be visible
       document.querySelector('.stage').classList.toggle('stage--dark', value === '#ffffff');
     });

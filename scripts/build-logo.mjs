@@ -1,4 +1,4 @@
-// Build a lean, self-contained, JS-free export of the ACS animated logo.
+// Build a lean, self-contained export of the ACS animated logo.
 //
 // The dev app (index.html/index.js/styles.scss) is great for tweaking: it drives
 // every layer's duration/delay/easing from JS and loops via setTimeout + clone.
@@ -6,9 +6,10 @@
 //   - one inline-block `.acs-logo` wrapper (a normal inline logo, not viewport-centered)
 //   - layered SVGs absolutely positioned inside it
 //   - a scoped <style> whose keyframes express the whole sequence as ONE infinite
-//     master cycle, so it animates → holds → snaps back with no JavaScript.
+//     master cycle
+//   - hover settle behavior that mirrors the dev interaction logic
 //
-// Output: export/acs-logo.html  (open it, or copy the `.acs-logo` block into any page)
+// Output: export/acs-logo.html  (for hover settle behavior, include the emitted script)
 //
 // Regenerate with:  npm run build:logo
 
@@ -38,7 +39,7 @@ const LOOP_PAUSE_MS = 320;
 const LAYERS = [
   { cls: 'outer-circle',  mult: 1.0,  delay: 0,   from: 'rotateY(90deg)',                to: 'rotateY(0deg)' },
   { cls: 'vertical-oval', mult: 1.9,  delay: 300, from: 'rotateY(450deg)',               to: 'rotateY(0deg)' },
-  { cls: 'hwrap',         mult: 1.6,  delay: 100, from: 'rotateY(90deg) rotate(-90deg)', to: 'rotateY(0deg) rotate(0deg)' },
+  { cls: 'hwrap',         mult: 1.8,  delay: 250, from: 'rotateY(90deg) rotate(-90deg)', to: 'rotateY(0deg) rotate(0deg)' },
   { cls: 'hoval',         mult: 1.9,  delay: 170, from: 'rotateX(0deg)',                 to: 'rotateX(-180deg)' },
   { cls: 'dwrap',         mult: 1.5,  delay: 180, from: 'rotateY(90deg)',                to: 'rotateY(0deg)' },
   { cls: 'diamond',       mult: 2.0,  delay: 380, from: 'rotate(0deg)',                  to: 'rotate(-90deg)' },
@@ -114,7 +115,7 @@ const swapKeyframes = `@keyframes acs-emblem-in {
   100% { opacity: 1; transform: translateX(0); }
 }`;
 
-const layerAnim = (cls) => `  .acs-logo__${cls} { animation: acs-${cls} var(--acs-cycle) linear infinite; }`;
+const layerAnim = (cls) => `  .acs-logo__${cls} { animation: acs-${cls} var(--acs-cycle) linear 1 forwards; }`;
 
 // ── Assemble the drop-in block ──────────────────────────────────────────────────
 
@@ -151,7 +152,7 @@ const block = `<div class="acs-logo" role="img" aria-label="ACS">
       /* perspective scales with the logo so the 3D read is size-independent */
       perspective: calc(var(--acs-size, 159px) * 120 / 159);
       transform-style: preserve-3d;
-      animation: acs-orb-out var(--acs-cycle) linear infinite;
+      animation: acs-orb-out var(--acs-cycle) linear 1 forwards;
     }
     .acs-logo__emblem {
       opacity: 0;
@@ -159,12 +160,12 @@ const block = `<div class="acs-logo" role="img" aria-label="ACS">
          rendering context and giving the same sub-pixel-smooth antialiasing. */
       transform: translateZ(0);
       will-change: opacity;
-      animation: acs-emblem-in var(--acs-cycle) ease infinite;
+      animation: acs-emblem-in var(--acs-cycle) ease 1 forwards;
     }
     .acs-logo__textpaths {
       opacity: 0;
       transform: translateX(${reveal.shift}px);
-      animation: acs-text-reveal var(--acs-cycle) linear infinite;
+      animation: acs-text-reveal var(--acs-cycle) linear 1 forwards;
     }
 
     .acs-logo__layer {
@@ -207,13 +208,20 @@ ${TEXT_PATHS.map((d) => `        <path d="${d}" fill="currentColor" />`).join('\
 
   <!-- Animated orb (plays, then fades under the emblem) -->
   <svg class="acs-logo__orb" viewBox="0 0 40 40" fill="none" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="acs-orb-clip">
+        <circle cx="20" cy="20" r="20"/>
+      </clipPath>
+    </defs>
     <circle class="acs-logo__layer acs-logo__outer-circle" cx="20" cy="20" r="19.075" transform="rotate(-90 20 20)" stroke="currentColor" stroke-width="1.85" />
-    <path class="acs-logo__layer acs-logo__vertical-oval" d="M20 0.924805C22.8611 0.924805 25.6097 2.8629 27.6924 6.33398C29.7639 9.78664 31.0752 14.6161 31.0752 20C31.0752 25.3839 29.7639 30.2134 27.6924 33.666C25.6097 37.1371 22.8611 39.0752 20 39.0752C17.1389 39.0752 14.3903 37.1371 12.3076 33.666C10.2361 30.2134 8.9248 25.3839 8.9248 20C8.9248 14.6161 10.2361 9.78664 12.3076 6.33398C14.3903 2.8629 17.1389 0.924805 20 0.924805Z" stroke="currentColor" stroke-width="1.85" />
-    <g class="acs-logo__layer acs-logo__hwrap">
-      <path class="acs-logo__layer acs-logo__hoval" d="M0.924804 20C0.924804 17.1389 2.8629 14.3903 6.33398 12.3076C9.78664 10.2361 14.6161 8.9248 20 8.9248C25.3839 8.9248 30.2134 10.2361 33.666 12.3076C37.1371 14.3903 39.0752 17.1389 39.0752 20C39.0752 22.8611 37.1371 25.6097 33.666 27.6924C30.2134 29.7639 25.3839 31.0752 20 31.0752C14.6161 31.0752 9.78664 29.7639 6.33398 27.6924C2.8629 25.6097 0.924804 22.8611 0.924804 20Z" stroke="currentColor" stroke-width="1.85" />
-    </g>
-    <g class="acs-logo__layer acs-logo__dwrap">
-      <path class="acs-logo__layer acs-logo__diamond" d="M21.1511 14.9722C20.5153 14.3364 19.4844 14.3364 18.8486 14.9722L14.972 18.8488C14.3362 19.4846 14.3362 20.5156 14.972 21.1513L18.8486 25.028C19.4844 25.6637 20.5153 25.6637 21.1511 25.028L25.0277 21.1513C25.6635 20.5156 25.6635 19.4846 25.0277 18.8488L21.1511 14.9722Z" fill="currentColor" />
+    <g clip-path="url(#acs-orb-clip)">
+      <path class="acs-logo__layer acs-logo__vertical-oval" d="M20 0.924805C22.8611 0.924805 25.6097 2.8629 27.6924 6.33398C29.7639 9.78664 31.0752 14.6161 31.0752 20C31.0752 25.3839 29.7639 30.2134 27.6924 33.666C25.6097 37.1371 22.8611 39.0752 20 39.0752C17.1389 39.0752 14.3903 37.1371 12.3076 33.666C10.2361 30.2134 8.9248 25.3839 8.9248 20C8.9248 14.6161 10.2361 9.78664 12.3076 6.33398C14.3903 2.8629 17.1389 0.924805 20 0.924805Z" stroke="currentColor" stroke-width="1.85" />
+      <g class="acs-logo__layer acs-logo__hwrap">
+        <path class="acs-logo__layer acs-logo__hoval" d="M0.924804 20C0.924804 17.1389 2.8629 14.3903 6.33398 12.3076C9.78664 10.2361 14.6161 8.9248 20 8.9248C25.3839 8.9248 30.2134 10.2361 33.666 12.3076C37.1371 14.3903 39.0752 17.1389 39.0752 20C39.0752 22.8611 37.1371 25.6097 33.666 27.6924C30.2134 29.7639 25.3839 31.0752 20 31.0752C14.6161 31.0752 9.78664 29.7639 6.33398 27.6924C2.8629 25.6097 0.924804 22.8611 0.924804 20Z" stroke="currentColor" stroke-width="1.85" />
+      </g>
+      <g class="acs-logo__layer acs-logo__dwrap">
+        <path class="acs-logo__layer acs-logo__diamond" d="M21.1511 14.9722C20.5153 14.3364 19.4844 14.3364 18.8486 14.9722L14.972 18.8488C14.3362 19.4846 14.3362 20.5156 14.972 21.1513L18.8486 25.028C19.4844 25.6637 20.5153 25.6637 21.1511 25.028L25.0277 21.1513C25.6635 20.5156 25.6635 19.4846 25.0277 18.8488L21.1511 14.9722Z" fill="currentColor" />
+      </g>
     </g>
   </svg>
 
@@ -225,11 +233,11 @@ ${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="currentColor" />`).join('\n'
 
 // ── Hover variant block ──────────────────────────────────────────────────────────
 // A self-contained logo that shows the static emblem + text by default and plays
-// a continuous orbit loop on :hover. No JS required.
+// a continuous orbit loop while active. JS handles settle-to-end on pointer exit.
 
 const HOVER_CYCLE_VERT = 2800;
 const HOVER_CYCLE_WRAP = 2400;
-const HOVER_CYCLE_FLIP = 1600;
+const HOVER_CYCLE_FLIP = 2000;
 const HOVER_CYCLE_DIAMOND = 2400;
 
 const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label="ACS">
@@ -254,7 +262,7 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
     .acs-logo--hover .acs-logo__orb,
     .acs-logo--hover .acs-logo__emblem { width: calc(100% * 40 / 159); height: 100%; }
 
-    /* Orb: hidden by default, shown on hover */
+    /* Orb: hidden by default */
     .acs-logo--hover .acs-logo__orb {
       perspective: calc(var(--acs-size, 159px) * 120 / 159);
       transform-style: preserve-3d;
@@ -262,9 +270,7 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
       animation: none;
       transition: opacity 35ms linear;
     }
-    .acs-logo--hover:hover .acs-logo__orb { opacity: 1; }
-
-    /* Emblem: visible by default, hides on hover */
+    /* Emblem: visible by default */
     .acs-logo--hover .acs-logo__emblem {
       opacity: 1;
       animation: none;
@@ -272,7 +278,6 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
       will-change: opacity;
       transition: opacity 55ms linear;
     }
-    .acs-logo--hover:hover .acs-logo__emblem { opacity: 0; }
 
     /* Text: always fully visible */
     .acs-logo--hover .acs-logo__textpaths {
@@ -287,6 +292,8 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
       transform-style: preserve-3d;
     }
     .acs-logo--hover .acs-logo__hwrap { transform-box: view-box; transform-origin: center; }
+    .acs-logo--hover .acs-logo__outer-circle { animation: none; transform: none; }
+    .acs-logo--hover .acs-logo__dwrap { animation: none; transform: none; }
 
     /* Diamond stays at its arrived position */
     .acs-logo--hover .acs-logo__diamond {
@@ -294,32 +301,43 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
       transform: rotate(-90deg);
     }
 
-    /* Resting arrived pose — no animation until hover (each hover restarts from 0%) */
-    .acs-logo--hover .acs-logo__vertical-oval {
+    /* Resting arrived pose — no animation until activated. */
+    .acs-logo--hover:not(.hover-orb-active) .acs-logo__vertical-oval {
       animation: none;
       transform: rotateY(0deg);
     }
-    .acs-logo--hover .acs-logo__hwrap {
+    .acs-logo--hover:not(.hover-orb-active) .acs-logo__hwrap {
       animation: none;
       transform: rotate(0deg);
     }
-    .acs-logo--hover .acs-logo__hoval {
+    .acs-logo--hover:not(.hover-orb-active) .acs-logo__hoval {
       animation: none;
       transform: rotateX(0deg);
     }
+    .acs-logo--hover:not(.hover-orb-active) .acs-logo__diamond {
+      animation: none;
+      transform: rotate(-90deg);
+    }
 
-    /* Hover orbit animations — only while :hover */
-    .acs-logo--hover:hover .acs-logo__vertical-oval {
+    /* Exit-only swap tuning right before removing .hover-orb-active */
+    .acs-logo--hover.hover-orb-exit .acs-logo__orb { transition: opacity 95ms linear 12ms; }
+    .acs-logo--hover.hover-orb-exit .acs-logo__emblem { transition: opacity 22ms linear; }
+
+    .acs-logo--hover.hover-orb-active .acs-logo__orb { opacity: 1; }
+    .acs-logo--hover.hover-orb-active .acs-logo__emblem { opacity: 0; }
+
+    /* Orbit animations while active */
+    .acs-logo--hover.hover-orb-active .acs-logo__vertical-oval {
       animation: acs-hover-vert ${HOVER_CYCLE_VERT}ms linear infinite;
     }
-    .acs-logo--hover:hover .acs-logo__hwrap {
+    .acs-logo--hover.hover-orb-active .acs-logo__hwrap {
       animation: acs-hover-hwrap ${HOVER_CYCLE_WRAP}ms linear infinite;
     }
-    .acs-logo--hover:hover .acs-logo__hoval {
+    .acs-logo--hover.hover-orb-active .acs-logo__hoval {
       animation: acs-hover-hoval ${HOVER_CYCLE_FLIP}ms linear infinite;
     }
-    .acs-logo--hover:hover .acs-logo__diamond {
-      animation: acs-hover-diamond ${HOVER_CYCLE_DIAMOND}ms cubic-bezier(0.42, 0, 0.58, 1) infinite;
+    .acs-logo--hover.hover-orb-active .acs-logo__diamond {
+      animation: acs-hover-diamond ${HOVER_CYCLE_DIAMOND}ms linear infinite;
     }
 
     @keyframes acs-hover-vert {
@@ -341,7 +359,11 @@ const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label=
 
     @media (prefers-reduced-motion: reduce) {
       .acs-logo--hover .acs-logo__orb { display: none; }
-      .acs-logo--hover:hover .acs-logo__emblem { opacity: 1; }
+      .acs-logo--hover .acs-logo__emblem { opacity: 1 !important; }
+      .acs-logo--hover .acs-logo__layer,
+      .acs-logo--hover .acs-logo__hwrap,
+      .acs-logo--hover .acs-logo__hoval,
+      .acs-logo--hover .acs-logo__diamond { animation: none !important; }
     }
   </style>
 
@@ -359,19 +381,26 @@ ${TEXT_PATHS.map((d) => `        <path d="${d}" fill="currentColor" />`).join('\
     </g>
   </svg>
 
-  <!-- Hover orb (shown on hover, continuous loop starting from arrived state) -->
+  <!-- Hover orb (shown while active, looping from arrived state) -->
   <svg class="acs-logo__orb" viewBox="0 0 40 40" fill="none" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="acs-hover-orb-clip">
+        <circle cx="20" cy="20" r="20"/>
+      </clipPath>
+    </defs>
     <circle class="acs-logo__layer acs-logo__outer-circle" cx="20" cy="20" r="19.075" transform="rotate(-90 20 20)" stroke="currentColor" stroke-width="1.85" />
-    <path class="acs-logo__layer acs-logo__vertical-oval" d="M20 0.924805C22.8611 0.924805 25.6097 2.8629 27.6924 6.33398C29.7639 9.78664 31.0752 14.6161 31.0752 20C31.0752 25.3839 29.7639 30.2134 27.6924 33.666C25.6097 37.1371 22.8611 39.0752 20 39.0752C17.1389 39.0752 14.3903 37.1371 12.3076 33.666C10.2361 30.2134 8.9248 25.3839 8.9248 20C8.9248 14.6161 10.2361 9.78664 12.3076 6.33398C14.3903 2.8629 17.1389 0.924805 20 0.924805Z" stroke="currentColor" stroke-width="1.85" />
-    <g class="acs-logo__layer acs-logo__hwrap">
-      <path class="acs-logo__layer acs-logo__hoval" d="M0.924804 20C0.924804 17.1389 2.8629 14.3903 6.33398 12.3076C9.78664 10.2361 14.6161 8.9248 20 8.9248C25.3839 8.9248 30.2134 10.2361 33.666 12.3076C37.1371 14.3903 39.0752 17.1389 39.0752 20C39.0752 22.8611 37.1371 25.6097 33.666 27.6924C30.2134 29.7639 25.3839 31.0752 20 31.0752C14.6161 31.0752 9.78664 29.7639 6.33398 27.6924C2.8629 25.6097 0.924804 22.8611 0.924804 20Z" stroke="currentColor" stroke-width="1.85" />
-    </g>
-    <g class="acs-logo__layer acs-logo__dwrap">
-      <path class="acs-logo__layer acs-logo__diamond" d="M21.1511 14.9722C20.5153 14.3364 19.4844 14.3364 18.8486 14.9722L14.972 18.8488C14.3362 19.4846 14.3362 20.5156 14.972 21.1513L18.8486 25.028C19.4844 25.6637 20.5153 25.6637 21.1511 25.028L25.0277 21.1513C25.6635 20.5156 25.6635 19.4846 25.0277 18.8488L21.1511 14.9722Z" fill="currentColor" />
+    <g clip-path="url(#acs-hover-orb-clip)">
+      <path class="acs-logo__layer acs-logo__vertical-oval" d="M20 0.924805C22.8611 0.924805 25.6097 2.8629 27.6924 6.33398C29.7639 9.78664 31.0752 14.6161 31.0752 20C31.0752 25.3839 29.7639 30.2134 27.6924 33.666C25.6097 37.1371 22.8611 39.0752 20 39.0752C17.1389 39.0752 14.3903 37.1371 12.3076 33.666C10.2361 30.2134 8.9248 25.3839 8.9248 20C8.9248 14.6161 10.2361 9.78664 12.3076 6.33398C14.3903 2.8629 17.1389 0.924805 20 0.924805Z" stroke="currentColor" stroke-width="1.85" />
+      <g class="acs-logo__layer acs-logo__hwrap">
+        <path class="acs-logo__layer acs-logo__hoval" d="M0.924804 20C0.924804 17.1389 2.8629 14.3903 6.33398 12.3076C9.78664 10.2361 14.6161 8.9248 20 8.9248C25.3839 8.9248 30.2134 10.2361 33.666 12.3076C37.1371 14.3903 39.0752 17.1389 39.0752 20C39.0752 22.8611 37.1371 25.6097 33.666 27.6924C30.2134 29.7639 25.3839 31.0752 20 31.0752C14.6161 31.0752 9.78664 29.7639 6.33398 27.6924C2.8629 25.6097 0.924804 22.8611 0.924804 20Z" stroke="currentColor" stroke-width="1.85" />
+      </g>
+      <g class="acs-logo__layer acs-logo__dwrap">
+        <path class="acs-logo__layer acs-logo__diamond" d="M21.1511 14.9722C20.5153 14.3364 19.4844 14.3364 18.8486 14.9722L14.972 18.8488C14.3362 19.4846 14.3362 20.5156 14.972 21.1513L18.8486 25.028C19.4844 25.6637 20.5153 25.6637 21.1511 25.028L25.0277 21.1513C25.6635 20.5156 25.6635 19.4846 25.0277 18.8488L21.1511 14.9722Z" fill="currentColor" />
+      </g>
     </g>
   </svg>
 
-  <!-- Static emblem — visible by default, hides on hover -->
+  <!-- Static emblem — visible by default, hidden while active -->
   <svg class="acs-logo__emblem" viewBox="0 0 40 40" fill="none" shape-rendering="geometricPrecision" xmlns="http://www.w3.org/2000/svg">
 ${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="currentColor" />`).join('\n')}
   </svg>
@@ -379,10 +408,11 @@ ${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="currentColor" />`).join('\n'
 
 // ── Demo page wrapper ────────────────────────────────────────────────────────────
 
-// Stamp a size + color class onto a block string
+// Stamp a size + color class onto a block string (hover uses two classes on the root)
 const stamp = (src, size, color) =>
   src.replace(/^/gm, '      ')
-     .replace(/(class="acs-logo(?:--hover)?)"/, `$1 ${size} ${color}"`);
+     .replace(/class="acs-logo acs-logo--hover"/, `class="acs-logo acs-logo--hover ${size} ${color}"`)
+     .replace(/class="acs-logo"/, `class="acs-logo ${size} ${color}"`);
 
 const page = `<!DOCTYPE html>
 <html lang="en">
@@ -424,7 +454,7 @@ const page = `<!DOCTYPE html>
     </style>
   </head>
   <body>
-    <div class="demo-note">Generated by npm run build:logo &middot; no JavaScript</div>
+    <div class="demo-note">Generated by npm run build:logo &middot; hover settle JS included</div>
 
     <!-- ── Full Animation ──────────────────────────────────────────────────── -->
     <div class="demo-section">
@@ -465,6 +495,210 @@ ${stamp(hoverBlock, 'big', 'white')}
 ${stamp(hoverBlock, 'small', 'white')}
       </div>
     </div>
+    <script>
+      (function () {
+        var HOVER_LAYER_MS = {
+          vertical: ${HOVER_CYCLE_VERT},
+          wrap: ${HOVER_CYCLE_WRAP},
+          flip: ${HOVER_CYCLE_FLIP},
+          diamond: ${HOVER_CYCLE_DIAMOND}
+        };
+        var HOVER_SETTLE_EASE = 'cubic-bezier(0.2, 0.2, 0.8, 1)';
+        var HOVER_EXIT_SWAP_MS = 140;
+
+        function initHoverLogo(hoverLockup) {
+          var finishTimer = null;
+          var settleRaf = 0;
+          var exitSwapTimer = null;
+          var hoverPhase = 'idle'; // idle | active | settling
+          var pendingRestart = false;
+          var hoverStartAt = 0;
+
+          function getOrb() {
+            return hoverLockup.querySelector('.acs-logo__orb');
+          }
+
+          function clearFinishWait() {
+            if (finishTimer) {
+              clearTimeout(finishTimer);
+              finishTimer = null;
+            }
+            if (settleRaf) {
+              cancelAnimationFrame(settleRaf);
+              settleRaf = 0;
+            }
+          }
+
+          function clearExitSwap() {
+            if (exitSwapTimer) {
+              clearTimeout(exitSwapTimer);
+              exitSwapTimer = null;
+            }
+            hoverLockup.classList.remove('hover-orb-exit');
+          }
+
+          function getHoverLayers() {
+            var orb = getOrb();
+            if (!orb) return null;
+            return {
+              vertical: orb.querySelector('.acs-logo__vertical-oval'),
+              wrap: orb.querySelector('.acs-logo__hwrap'),
+              flip: orb.querySelector('.acs-logo__hoval'),
+              diamond: orb.querySelector('.acs-logo__diamond')
+            };
+          }
+
+          function clearInlineMotion(layers) {
+            Object.keys(layers).forEach(function (key) {
+              var el = layers[key];
+              if (!el) return;
+              el.style.removeProperty('animation');
+              el.style.removeProperty('transition');
+              el.style.removeProperty('transform');
+            });
+          }
+
+          function getCycleState(elapsed, duration) {
+            var phase = ((elapsed % duration) + duration) % duration;
+            var remaining = phase === 0 ? duration : duration - phase;
+            return { progress: phase / duration, remaining: remaining };
+          }
+
+          function restartOrb() {
+            var orb = getOrb();
+            if (!orb) return;
+            var clone = orb.cloneNode(true);
+            orb.replaceWith(clone);
+          }
+
+          function startHoverCycle() {
+            if (hoverPhase !== 'idle') return;
+            clearFinishWait();
+            clearExitSwap();
+            pendingRestart = false;
+            hoverPhase = 'active';
+            hoverStartAt = Date.now();
+            hoverLockup.classList.remove('hover-orb-active');
+            restartOrb();
+            void hoverLockup.getBoundingClientRect();
+            hoverLockup.classList.add('hover-orb-active');
+          }
+
+          function setIdle() {
+            clearFinishWait();
+            var layers = getHoverLayers();
+            if (layers) clearInlineMotion(layers);
+            hoverPhase = 'idle';
+            var shouldRestart = pendingRestart || hoverLockup.matches(':hover');
+            pendingRestart = false;
+            if (shouldRestart) {
+              clearExitSwap();
+              startHoverCycle();
+              return;
+            }
+            hoverLockup.classList.add('hover-orb-exit');
+            hoverLockup.classList.remove('hover-orb-active');
+            exitSwapTimer = setTimeout(function () {
+              hoverLockup.classList.remove('hover-orb-exit');
+              exitSwapTimer = null;
+            }, HOVER_EXIT_SWAP_MS);
+          }
+
+          hoverLockup.addEventListener('mouseenter', function () {
+            if (hoverPhase === 'idle') {
+              startHoverCycle();
+              return;
+            }
+            if (hoverPhase === 'settling') {
+              pendingRestart = true;
+            }
+          });
+
+          hoverLockup.addEventListener('mouseleave', function () {
+            if (hoverPhase === 'settling') {
+              pendingRestart = false;
+              return;
+            }
+            if (hoverPhase !== 'active' || !hoverLockup.classList.contains('hover-orb-active')) return;
+            hoverPhase = 'settling';
+            pendingRestart = false;
+
+            var layers = getHoverLayers();
+            if (!layers || !layers.vertical || !layers.wrap || !layers.flip || !layers.diamond) {
+              setIdle();
+              return;
+            }
+
+            var elapsed = Math.max(0, Date.now() - hoverStartAt);
+            var v = getCycleState(elapsed, HOVER_LAYER_MS.vertical);
+            var w = getCycleState(elapsed, HOVER_LAYER_MS.wrap);
+            var f = getCycleState(elapsed, HOVER_LAYER_MS.flip);
+            var d = getCycleState(elapsed, HOVER_LAYER_MS.diamond);
+
+            var horizontalSettleMs = Math.max(w.remaining, f.remaining);
+            function extendToFloor(remaining, period, floor) {
+              if (remaining >= floor) return remaining;
+              return remaining + Math.ceil((floor - remaining) / period) * period;
+            }
+
+            var vDuration = extendToFloor(v.remaining, HOVER_LAYER_MS.vertical, horizontalSettleMs);
+            var wDuration = w.remaining;
+            var fDuration = f.remaining;
+            var dDuration = extendToFloor(d.remaining, HOVER_LAYER_MS.diamond, horizontalSettleMs);
+
+            var vExtraTurns = Math.round((vDuration - v.remaining) / HOVER_LAYER_MS.vertical);
+            var dExtraTurns = Math.round((dDuration - d.remaining) / HOVER_LAYER_MS.diamond);
+
+            var targets = [
+              {
+                el: layers.vertical,
+                from: 'rotateY(' + (v.progress * 360).toFixed(3) + 'deg)',
+                to: 'rotateY(' + (360 + vExtraTurns * 360) + 'deg)',
+                duration: vDuration
+              },
+              {
+                el: layers.wrap,
+                from: 'rotate(' + (w.progress * 360).toFixed(3) + 'deg)',
+                to: 'rotate(360deg)',
+                duration: wDuration
+              },
+              {
+                el: layers.flip,
+                from: 'rotateX(' + (-360 + f.progress * 360).toFixed(3) + 'deg)',
+                to: 'rotateX(0deg)',
+                duration: fDuration
+              },
+              {
+                el: layers.diamond,
+                from: 'rotate(' + (-90 - d.progress * 180).toFixed(3) + 'deg)',
+                to: 'rotate(' + (-270 - dExtraTurns * 180) + 'deg)',
+                duration: dDuration
+              }
+            ];
+
+            targets.forEach(function (t) {
+              t.el.style.animation = 'none';
+              t.el.style.transition = 'none';
+              t.el.style.transform = t.from;
+            });
+
+            void layers.vertical.getBoundingClientRect();
+
+            settleRaf = requestAnimationFrame(function () {
+              settleRaf = 0;
+              targets.forEach(function (t) {
+                t.el.style.transition = 'transform ' + t.duration + 'ms ' + HOVER_SETTLE_EASE;
+                t.el.style.transform = t.to;
+              });
+              var maxRemaining = Math.max.apply(null, targets.map(function (t) { return t.duration; }));
+              finishTimer = setTimeout(setIdle, maxRemaining + 40);
+            });
+          });
+        }
+
+        document.querySelectorAll('.acs-logo--hover').forEach(initHoverLogo);
+      })();
+    </script>
   </body>
 </html>
 `;

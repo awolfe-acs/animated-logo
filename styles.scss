@@ -76,6 +76,7 @@ body {
 
 // Emblem, orb, and wordmark all share the lockup's coordinate space at its origin.
 .lockup .logo-emblem,
+.lockup .hover-emblem,
 .lockup .orb-logo,
 .lockup .hover-orb-logo,
 .lockup .acs-text {
@@ -261,8 +262,8 @@ body {
     transform-box: view-box;
     transform-origin: center;
     animation-name: horizontal-orbit-2d;
-    animation-delay: 180ms;
-    animation-duration: 4800ms;
+    animation-delay: 250ms;
+    animation-duration: 4320ms;
   }
 
   // GUI: "H. Oval — Backflip" → horizontal-orbit-3d (rotateX on inner <path>)
@@ -288,10 +289,11 @@ body {
 }
 
 // GUI "H. Oval — Spin" · .horizontal-oval-wrap · horizontal-orbit-2d
-// Counterclockwise rotateY spin: edge-on vertical line → flat horizontal oval.
+// Starts fully edge-on (rotateY 90deg) so the oval is paper-thin and invisible on entry.
+// Any momentary overflow during arrival is clipped by the outer-circle clipPath on the SVG.
 @keyframes horizontal-orbit-2d {
   from { transform: rotateY(90deg) rotate(-90deg); }
-  to   { transform: rotateY(0deg); }
+  to   { transform: rotateY(0deg) rotate(0deg); }
 }
 
 // GUI "H. Oval — Backflip" · .horizontal-oval · horizontal-orbit-3d
