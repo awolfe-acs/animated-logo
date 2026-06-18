@@ -222,6 +222,57 @@ body {
   }
 }
 
+// ── Full animation → perpetual orbit mode (entered once after the reveal) ─────
+// Added by JS after the single-play reveal completes; mirrors hover behaviour
+// but on the full-animation lockup's .orb-logo / .logo-emblem elements.
+
+.lockup--orbit-active {
+  cursor: pointer;
+
+  .orb-logo {
+    // Visibility is now controlled by hover-orb-active, not the .faded class.
+    opacity: 0;
+    animation: none; // kill the one-shot reveal animation
+    transition: opacity 35ms linear;
+
+    // Non-orbiting layers — park at their arrived positions.
+    .outer-circle { animation: none; transform: none; }
+    .diamond-wrap  { animation: none; transform: none; }
+  }
+
+  // Faster transition to match hover-logo feel.
+  .logo-emblem { transition: opacity 55ms linear; }
+
+  // Exit-only swap tuning (applied briefly right before .hover-orb-active is removed).
+  &.hover-orb-exit {
+    .orb-logo    { transition: opacity 95ms linear 12ms; }
+    .logo-emblem { transition: opacity 22ms linear; }
+  }
+
+  // Active orbit: orb visible + spinning, emblem hidden.
+  &.hover-orb-active {
+    .orb-logo {
+      opacity: 1;
+
+      .vertical-oval        { animation: hover-vert-orbit  2800ms linear infinite; }
+      .horizontal-oval-wrap { animation: hover-h-orbit-2d  2400ms linear infinite; }
+      .horizontal-oval      { animation: hover-h-orbit-3d  2000ms linear infinite; }
+      .diamond              { animation: hover-diamond-2d  2400ms linear infinite; }
+    }
+
+    // Overrides .logo-emblem.visible (specificity 0,3,0 > 0,2,0).
+    .logo-emblem { opacity: 0; }
+  }
+
+  // Resting arrived pose when idle — layers parked at their end-of-reveal positions.
+  &:not(.hover-orb-active) .orb-logo {
+    .vertical-oval        { animation: none; transform: rotateY(0deg); }
+    .horizontal-oval-wrap { animation: none; transform: rotate(0deg); }
+    .horizontal-oval      { animation: none; transform: rotateX(0deg); }
+    .diamond              { animation: none; transform: rotate(-90deg); }
+  }
+}
+
 .orb-logo {
   overflow: visible;
   perspective: 120px;

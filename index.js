@@ -210,9 +210,11 @@ function scheduleFade() {
   fadeTimer   = setTimeout(crossfade, crossfadeDelay);
 }
 
+// Transition to perpetual orbit as soon as the emblem crossfade is fully opaque —
+// no need to wait for the full spin-in sequence to wind down.
 function scheduleLoop() {
   clearLoopTimer();
-  loopTimer = setTimeout(restartAnimation, getSequenceDuration() + LOOP_PAUSE_MS);
+  loopTimer = setTimeout(startPerpetualHover, getCrossfadeDelay() + FADE_DUR_MS);
 }
 
 function restartAnimation() {
@@ -220,6 +222,14 @@ function restartAnimation() {
   clearFadeTimer();
   clearRevealTimer();
   clearFadeSnapTimer();
+
+  // Tear down any active orbit mode so the full reveal can play again.
+  if (destroyOrbitMode) { destroyOrbitMode(); destroyOrbitMode = null; }
+  const fullLockup = document.querySelector('.lockup:not(.lockup--hover)');
+  if (fullLockup) {
+    fullLockup.classList.remove('lockup--orbit-active', 'hover-orb-active', 'hover-orb-exit');
+  }
+
   snapReset();
   animStartTime = Date.now();
   applyStyles();
@@ -477,6 +487,8 @@ function makeEmblemSvg(cls) {
 // Inject the full-animation emblem (starts hidden, JS fades it in).
 document.querySelector('.lockup:not(.lockup--hover)').appendChild(makeEmblemSvg('logo-emblem'));
 
+// ── Orbit hover — shared by hover logo AND full-animation post-reveal ─────────
+
 const HOVER_LAYER_MS = {
   vertical: 2800,
   wrap: 2400,
@@ -487,12 +499,10 @@ const HOVER_LAYER_MS = {
 const HOVER_SETTLE_EASE = 'cubic-bezier(0.2, 0.2, 0.8, 1)';
 const HOVER_EXIT_SWAP_MS = 140;
 
-// Inject the hover variant emblem and wire hover->settle behavior.
-function initHoverLogo() {
-  const hoverLockup = document.querySelector('.lockup--hover');
-  if (!hoverLockup) return;
-  hoverLockup.appendChild(makeEmblemSvg('hover-emblem'));
-
+// Generic orbit-hover initialiser. Works for both the hover lockup (.hover-orb-logo)
+// and the full-animation lockup (.orb-logo) once it enters perpetual orbit mode.
+// Returns a destroy() function that removes event listeners and resets state.
+function initOrbitHover(lockup, { orbSelector }) {
   let finishTimer = null;
   let settleRaf = 0;
   let exitSwapTimer = null;
@@ -501,26 +511,17 @@ function initHoverLogo() {
   let hoverStartAt = 0;
 
   function getOrb() {
-    return hoverLockup.querySelector('.hover-orb-logo');
+    return lockup.querySelector(orbSelector);
   }
 
   function clearFinishWait() {
-    if (finishTimer) {
-      clearTimeout(finishTimer);
-      finishTimer = null;
-    }
-    if (settleRaf) {
-      cancelAnimationFrame(settleRaf);
-      settleRaf = 0;
-    }
+    if (finishTimer) { clearTimeout(finishTimer); finishTimer = null; }
+    if (settleRaf)   { cancelAnimationFrame(settleRaf); settleRaf = 0; }
   }
 
   function clearExitSwap() {
-    if (exitSwapTimer) {
-      clearTimeout(exitSwapTimer);
-      exitSwapTimer = null;
-    }
-    hoverLockup.classList.remove('hover-orb-exit');
+    if (exitSwapTimer) { clearTimeout(exitSwapTimer); exitSwapTimer = null; }
+    lockup.classList.remove('hover-orb-exit');
   }
 
   function getHoverLayers() {
@@ -528,9 +529,9 @@ function initHoverLogo() {
     if (!orb) return null;
     return {
       vertical: orb.querySelector('.vertical-oval'),
-      wrap: orb.querySelector('.horizontal-oval-wrap'),
-      flip: orb.querySelector('.horizontal-oval'),
-      diamond: orb.querySelector('.diamond'),
+      wrap:     orb.querySelector('.horizontal-oval-wrap'),
+      flip:     orb.querySelector('.horizontal-oval'),
+      diamond:  orb.querySelector('.diamond'),
     };
   }
 
@@ -554,7 +555,7 @@ function initHoverLogo() {
     const layers = getHoverLayers();
     if (layers) clearInlineMotion(layers);
     hoverPhase = 'idle';
-    const shouldRestart = pendingRestart || hoverLockup.matches(':hover');
+    const shouldRestart = pendingRestart || lockup.matches(':hover');
     pendingRestart = false;
     // If pointer is over the lockup when settling ends, restart from frame 0.
     if (shouldRestart) {
@@ -562,10 +563,10 @@ function initHoverLogo() {
       startHoverCycle();
       return;
     }
-    hoverLockup.classList.add('hover-orb-exit');
-    hoverLockup.classList.remove('hover-orb-active');
+    lockup.classList.add('hover-orb-exit');
+    lockup.classList.remove('hover-orb-active');
     exitSwapTimer = setTimeout(() => {
-      hoverLockup.classList.remove('hover-orb-exit');
+      lockup.classList.remove('hover-orb-exit');
       exitSwapTimer = null;
     }, HOVER_EXIT_SWAP_MS);
   }
@@ -585,13 +586,13 @@ function initHoverLogo() {
     hoverPhase = 'active';
     hoverStartAt = Date.now();
     // Force a clean re-prime so every entry starts from frame 0.
-    hoverLockup.classList.remove('hover-orb-active');
+    lockup.classList.remove('hover-orb-active');
     restartOrb();
-    void hoverLockup.getBoundingClientRect();
-    hoverLockup.classList.add('hover-orb-active');
+    void lockup.getBoundingClientRect();
+    lockup.classList.add('hover-orb-active');
   }
 
-  hoverLockup.addEventListener('mouseenter', () => {
+  const onEnter = () => {
     if (hoverPhase === 'idle') {
       startHoverCycle();
       return;
@@ -601,14 +602,14 @@ function initHoverLogo() {
       pendingRestart = true;
     }
     // If already active, do nothing (do not restart mid-run).
-  });
+  };
 
-  hoverLockup.addEventListener('mouseleave', () => {
+  const onLeave = () => {
     if (hoverPhase === 'settling') {
       pendingRestart = false;
       return;
     }
-    if (hoverPhase !== 'active' || !hoverLockup.classList.contains('hover-orb-active')) return;
+    if (hoverPhase !== 'active' || !lockup.classList.contains('hover-orb-active')) return;
     hoverPhase = 'settling';
     pendingRestart = false;
     const layers = getHoverLayers();
@@ -684,7 +685,59 @@ function initHoverLogo() {
       const maxRemaining = Math.max(...targets.map((t) => t.duration));
       finishTimer = setTimeout(setIdle, maxRemaining + 40);
     });
-  });
+  };
+
+  lockup.addEventListener('mouseenter', onEnter);
+  lockup.addEventListener('mouseleave', onLeave);
+
+  return function destroy() {
+    lockup.removeEventListener('mouseenter', onEnter);
+    lockup.removeEventListener('mouseleave', onLeave);
+    clearFinishWait();
+    clearExitSwap();
+    lockup.classList.remove('hover-orb-active', 'hover-orb-exit');
+    hoverPhase = 'idle';
+  };
+}
+
+// ── Hover logo (appear-immediately + perpetual hover) ─────────────────────────
+
+function initHoverLogo() {
+  const hoverLockup = document.querySelector('.lockup--hover');
+  if (!hoverLockup) return;
+  hoverLockup.appendChild(makeEmblemSvg('hover-emblem'));
+  initOrbitHover(hoverLockup, { orbSelector: '.hover-orb-logo' });
+}
+
+// ── Full animation → perpetual orbit (entered once after the reveal completes) ─
+
+let destroyOrbitMode = null;
+
+function startPerpetualHover() {
+  const lockup = document.querySelector('.lockup:not(.lockup--hover)');
+  if (!lockup || lockup.classList.contains('lockup--orbit-active')) return;
+
+  lockup.classList.add('lockup--orbit-active');
+
+  // Clone the orb to clear all inline animation/timing styles from the reveal phase
+  // so the orbit CSS rules take over with no interference.
+  const orb = lockup.querySelector('.orb-logo');
+  if (orb) {
+    const clone = orb.cloneNode(true);
+    clone.classList.remove('faded');
+    // Strip every inline style from the clone and its children.
+    clone.removeAttribute('style');
+    clone.querySelectorAll('[style]').forEach((el) => el.removeAttribute('style'));
+    orb.replaceWith(clone);
+  }
+
+  destroyOrbitMode = initOrbitHover(lockup, { orbSelector: '.orb-logo' });
+
+  // If the pointer was already over the lockup during the reveal, kick off the
+  // orbit cycle immediately — no mouse-out + re-enter required.
+  if (lockup.matches(':hover')) {
+    lockup.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+  }
 }
 
 buildControls();

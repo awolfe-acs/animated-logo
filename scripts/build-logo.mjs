@@ -117,6 +117,13 @@ const swapKeyframes = `@keyframes acs-emblem-in {
 
 const layerAnim = (cls) => `  .acs-logo__${cls} { animation: acs-${cls} var(--acs-cycle) linear 1 forwards; }`;
 
+// ── Hover / orbit timing constants (shared by both blocks and the page script) ──
+
+const HOVER_CYCLE_VERT    = 2800;
+const HOVER_CYCLE_WRAP    = 2400;
+const HOVER_CYCLE_FLIP    = 2000;
+const HOVER_CYCLE_DIAMOND = 2400;
+
 // ── Assemble the drop-in block ──────────────────────────────────────────────────
 
 const block = `<div class="acs-logo" role="img" aria-label="ACS">
@@ -190,6 +197,61 @@ ${LAYERS.map((l) => layerAnim(l.cls)).join('\n')}
 ${orbKeyframes.replace(/^/gm, '    ')}
 
 ${swapKeyframes.replace(/^/gm, '    ')}
+
+    /* ===== Orbit mode — perpetual hover that kicks in after the reveal ===== */
+    /* JS adds .acs-logo--orbit-active once the single-play cycle completes.   */
+
+    .acs-logo.acs-logo--orbit-active { cursor: pointer; }
+
+    /* Override the one-shot reveal animations; orbit CSS takes control. */
+    .acs-logo.acs-logo--orbit-active .acs-logo__orb {
+      opacity: 0; animation: none; transition: opacity 35ms linear;
+    }
+    .acs-logo.acs-logo--orbit-active .acs-logo__emblem {
+      opacity: 1; animation: none; transition: opacity 55ms linear;
+    }
+    .acs-logo.acs-logo--orbit-active .acs-logo__textpaths {
+      opacity: 1; animation: none; transform: translateX(0);
+    }
+    .acs-logo.acs-logo--orbit-active .acs-logo__outer-circle { animation: none; transform: none; }
+    .acs-logo.acs-logo--orbit-active .acs-logo__dwrap        { animation: none; transform: none; }
+
+    /* Exit-only swap tuning (applied briefly by JS before removing .hover-orb-active). */
+    .acs-logo.acs-logo--orbit-active.hover-orb-exit .acs-logo__orb    { transition: opacity 95ms linear 12ms; }
+    .acs-logo.acs-logo--orbit-active.hover-orb-exit .acs-logo__emblem { transition: opacity 22ms linear; }
+
+    /* Active: orb visible + orbiting, emblem hidden. */
+    .acs-logo.acs-logo--orbit-active.hover-orb-active .acs-logo__orb    { opacity: 1; }
+    .acs-logo.acs-logo--orbit-active.hover-orb-active .acs-logo__emblem { opacity: 0; }
+    .acs-logo.acs-logo--orbit-active.hover-orb-active .acs-logo__vertical-oval {
+      animation: acs-hover-vert ${HOVER_CYCLE_VERT}ms linear infinite;
+    }
+    .acs-logo.acs-logo--orbit-active.hover-orb-active .acs-logo__hwrap {
+      animation: acs-hover-hwrap ${HOVER_CYCLE_WRAP}ms linear infinite;
+    }
+    .acs-logo.acs-logo--orbit-active.hover-orb-active .acs-logo__hoval {
+      animation: acs-hover-hoval ${HOVER_CYCLE_FLIP}ms linear infinite;
+    }
+    .acs-logo.acs-logo--orbit-active.hover-orb-active .acs-logo__diamond {
+      animation: acs-hover-diamond ${HOVER_CYCLE_DIAMOND}ms linear infinite;
+    }
+
+    /* Resting arrived pose when idle. */
+    .acs-logo.acs-logo--orbit-active:not(.hover-orb-active) .acs-logo__vertical-oval { animation: none; transform: rotateY(0deg); }
+    .acs-logo.acs-logo--orbit-active:not(.hover-orb-active) .acs-logo__hwrap         { animation: none; transform: rotate(0deg); }
+    .acs-logo.acs-logo--orbit-active:not(.hover-orb-active) .acs-logo__hoval         { animation: none; transform: rotateX(0deg); }
+    .acs-logo.acs-logo--orbit-active:not(.hover-orb-active) .acs-logo__diamond       { animation: none; transform: rotate(-90deg); }
+
+    /* Orbit keyframes (duplicated here for self-contained use outside the hover block). */
+    @keyframes acs-hover-vert    { 0% { transform: rotateY(0deg); }    100% { transform: rotateY(360deg); } }
+    @keyframes acs-hover-hwrap   { from { transform: rotate(0deg); }   to   { transform: rotate(360deg); } }
+    @keyframes acs-hover-hoval   { 0% { transform: rotateX(-360deg); } 100% { transform: rotateX(0deg); } }
+    @keyframes acs-hover-diamond { from { transform: rotate(-90deg); } to   { transform: rotate(-270deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .acs-logo.acs-logo--orbit-active .acs-logo__orb    { display: none !important; }
+      .acs-logo.acs-logo--orbit-active .acs-logo__emblem { opacity: 1 !important; animation: none !important; }
+    }
   </style>
 
   <!-- ACS wordmark: slides out from behind the emblem's circular mask -->
@@ -234,11 +296,6 @@ ${EMBLEM_PATHS.map((d) => `    <path d="${d}" fill="currentColor" />`).join('\n'
 // ── Hover variant block ──────────────────────────────────────────────────────────
 // A self-contained logo that shows the static emblem + text by default and plays
 // a continuous orbit loop while active. JS handles settle-to-end on pointer exit.
-
-const HOVER_CYCLE_VERT = 2800;
-const HOVER_CYCLE_WRAP = 2400;
-const HOVER_CYCLE_FLIP = 2000;
-const HOVER_CYCLE_DIAMOND = 2400;
 
 const hoverBlock = `<div class="acs-logo acs-logo--hover" role="img" aria-label="ACS">
   <style>
@@ -446,11 +503,11 @@ const page = `<!DOCTYPE html>
       .acs-logo.black, .acs-logo--hover.black { --acs-color: #251f20; }
       .acs-logo.blue,  .acs-logo--hover.blue  { --acs-color: #412bfd; }
       .acs-logo.white, .acs-logo--hover.white  { --acs-color: #ffffff; }
-      .demo-row--dark {
-        background: #1a1a1a; border-radius: 16px; padding: 40px 60px;
-        gap: 60px; display: flex; align-items: center;
+      /* Dark pill wraps the white variant inline in each row */
+      .demo-swatch--dark {
+        background: #1a1a1a; border-radius: 14px; padding: 28px 36px;
+        display: flex; align-items: center;
       }
-      .demo-row--dark .demo-label { color: rgba(255,255,255,0.25); }
     </style>
   </head>
   <body>
@@ -463,16 +520,17 @@ const page = `<!DOCTYPE html>
         <span class="demo-label">Large</span>
 ${stamp(block, 'big', 'black')}
 ${stamp(block, 'big', 'blue')}
+        <div class="demo-swatch--dark">
+${stamp(block, 'big', 'white')}
+        </div>
       </div>
-      <div class="demo-row" style="margin-bottom:32px">
+      <div class="demo-row">
         <span class="demo-label">Small</span>
 ${stamp(block, 'small', 'black')}
 ${stamp(block, 'small', 'blue')}
-      </div>
-      <div class="demo-row--dark">
-        <span class="demo-label">White</span>
-${stamp(block, 'big', 'white')}
+        <div class="demo-swatch--dark">
 ${stamp(block, 'small', 'white')}
+        </div>
       </div>
     </div>
 
@@ -483,16 +541,17 @@ ${stamp(block, 'small', 'white')}
         <span class="demo-label">Large</span>
 ${stamp(hoverBlock, 'big', 'black')}
 ${stamp(hoverBlock, 'big', 'blue')}
+        <div class="demo-swatch--dark">
+${stamp(hoverBlock, 'big', 'white')}
+        </div>
       </div>
-      <div class="demo-row" style="margin-bottom:32px">
+      <div class="demo-row">
         <span class="demo-label">Small</span>
 ${stamp(hoverBlock, 'small', 'black')}
 ${stamp(hoverBlock, 'small', 'blue')}
-      </div>
-      <div class="demo-row--dark">
-        <span class="demo-label">White</span>
-${stamp(hoverBlock, 'big', 'white')}
+        <div class="demo-swatch--dark">
 ${stamp(hoverBlock, 'small', 'white')}
+        </div>
       </div>
     </div>
     <script>
@@ -697,15 +756,489 @@ ${stamp(hoverBlock, 'small', 'white')}
         }
 
         document.querySelectorAll('.acs-logo--hover').forEach(initHoverLogo);
+
+        // Activate orbit mode once the emblem crossfade is fully opaque.
+        document.querySelectorAll('.acs-logo:not(.acs-logo--hover)').forEach(function(logo) {
+          setTimeout(function() {
+            logo.classList.add('acs-logo--orbit-active');
+            initHoverLogo(logo);
+            if (logo.matches(':hover')) {
+              logo.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+            }
+          }, ${emblemEnd});
+        });
       })();
     </script>
   </body>
 </html>
 `;
 
+// ── _logo.scss partial ────────────────────────────────────────────────────────
+
+const OUT_SCSS = resolve(__dirname, '..', 'export', '_logo.scss');
+
+const scssPartial = `// ACS Animated Logo — _logo.scss
+// Generated by npm run build:logo — do not edit by hand.
+//
+// Usage:
+//   @use 'logo';           // SCSS @use (recommended)
+//   @import 'path/_logo';  // legacy @import
+//
+// Per-instance CSS custom properties on .acs-logo:
+//   --acs-size    width  (default 159px — preserves 159:40 ratio)
+//   --acs-color   colour (default #251f20)
+
+// ── Timing — keep in sync with logo.js ────────────────────────────────────────
+$acs-master-cycle:  ${masterCycle}ms !default; // full reveal cycle
+$acs-orbit-start:   ${emblemEnd}ms   !default; // orbit mode activation point (= emblemEnd)
+$acs-reveal-shift:  ${reveal.shift}px !default; // text slide-in offset
+$acs-hover-vert:    ${HOVER_CYCLE_VERT}ms    !default;
+$acs-hover-hwrap:   ${HOVER_CYCLE_WRAP}ms    !default;
+$acs-hover-hoval:   ${HOVER_CYCLE_FLIP}ms    !default;
+$acs-hover-diamond: ${HOVER_CYCLE_DIAMOND}ms !default;
+
+// ── Logo ──────────────────────────────────────────────────────────────────────
+.acs-logo {
+  --acs-cycle: #{$acs-master-cycle};
+  position: relative;
+  display: inline-block;
+  width: var(--acs-size, 159px);
+  aspect-ratio: 159 / 40;
+  vertical-align: middle;
+  color: var(--acs-color, #251f20);
+
+  // Text, orb, and emblem share the same top-left origin.
+  &__text,
+  &__orb,
+  &__emblem {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: visible;
+  }
+
+  &__text { width: 100%; height: 100%; }
+
+  &__orb,
+  &__emblem { width: calc(100% * 40 / 159); height: 100%; }
+
+  // Animated orb — plays once, then fades under the emblem.
+  &__orb {
+    perspective: calc(var(--acs-size, 159px) * 120 / 159);
+    transform-style: preserve-3d;
+    animation: acs-orb-out var(--acs-cycle) linear 1 forwards;
+  }
+
+  // Static emblem — fades in on top at the end of the reveal.
+  &__emblem {
+    opacity: 0;
+    transform: translateZ(0);
+    will-change: opacity;
+    animation: acs-emblem-in var(--acs-cycle) ease 1 forwards;
+  }
+
+  // ACS wordmark — slides out from behind the emblem's circular mask.
+  &__textpaths {
+    opacity: 0;
+    transform: translateX(#{$acs-reveal-shift});
+    animation: acs-text-reveal var(--acs-cycle) linear 1 forwards;
+  }
+
+  // Shared base for all orb path elements.
+  &__layer {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform-style: preserve-3d;
+  }
+
+  // H-oval wrapper uses the whole SVG viewBox as its transform origin.
+  &__hwrap {
+    transform-box: view-box;
+    transform-origin: center;
+    animation: acs-hwrap var(--acs-cycle) linear 1 forwards;
+  }
+
+  // One-shot reveal animations (hwrap handled above).
+  &__outer-circle  { animation: acs-outer-circle  var(--acs-cycle) linear 1 forwards; }
+  &__vertical-oval { animation: acs-vertical-oval var(--acs-cycle) linear 1 forwards; }
+  &__hoval         { animation: acs-hoval         var(--acs-cycle) linear 1 forwards; }
+  &__dwrap         { animation: acs-dwrap         var(--acs-cycle) linear 1 forwards; }
+  &__diamond       { animation: acs-diamond       var(--acs-cycle) linear 1 forwards; }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__orb,
+    &__layer,
+    &__emblem,
+    &__textpaths { animation: none; }
+    &__orb       { opacity: 0; }
+    &__emblem    { opacity: 1; }
+    &__textpaths { opacity: 1; transform: translateX(0); }
+  }
+
+  // ── Orbit mode ─────────────────────────────────────────────────────────────
+  // JS adds .acs-logo--orbit-active once the reveal completes (at \$acs-orbit-start),
+  // then wires up hover-settle behaviour identical to .acs-logo--hover.
+  &.acs-logo--orbit-active {
+    cursor: pointer;
+
+    .acs-logo__orb       { opacity: 0; animation: none; transition: opacity 35ms linear; }
+    .acs-logo__emblem    { opacity: 1; animation: none; transition: opacity 55ms linear; }
+    .acs-logo__textpaths { opacity: 1; animation: none; transform: translateX(0); }
+
+    .acs-logo__outer-circle { animation: none; transform: none; }
+    .acs-logo__dwrap        { animation: none; transform: none; }
+
+    &.hover-orb-exit {
+      .acs-logo__orb    { transition: opacity 95ms linear 12ms; }
+      .acs-logo__emblem { transition: opacity 22ms linear; }
+    }
+
+    &.hover-orb-active {
+      .acs-logo__orb    { opacity: 1; }
+      .acs-logo__emblem { opacity: 0; }
+
+      .acs-logo__vertical-oval { animation: acs-hover-vert    $acs-hover-vert    linear infinite; }
+      .acs-logo__hwrap         { animation: acs-hover-hwrap   $acs-hover-hwrap   linear infinite; }
+      .acs-logo__hoval         { animation: acs-hover-hoval   $acs-hover-hoval   linear infinite; }
+      .acs-logo__diamond       { animation: acs-hover-diamond $acs-hover-diamond linear infinite; }
+    }
+
+    &:not(.hover-orb-active) {
+      .acs-logo__vertical-oval { animation: none; transform: rotateY(0deg); }
+      .acs-logo__hwrap         { animation: none; transform: rotate(0deg); }
+      .acs-logo__hoval         { animation: none; transform: rotateX(0deg); }
+      .acs-logo__diamond       { animation: none; transform: rotate(-90deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .acs-logo__orb    { display: none; }
+      .acs-logo__emblem { opacity: 1 !important; animation: none !important; }
+    }
+  }
+
+  // ── Hover variant (.acs-logo--hover) ───────────────────────────────────────
+  // Displays the static emblem + text immediately; orbits on pointer enter.
+  &--hover {
+    cursor: pointer;
+
+    .acs-logo__orb       { opacity: 0; animation: none; transition: opacity 35ms linear; }
+    .acs-logo__emblem    { opacity: 1; animation: none; transition: opacity 55ms linear; }
+    .acs-logo__textpaths { opacity: 1; animation: none; transform: translateX(0); }
+
+    // Non-orbiting layers — reset one-shot reveal animations.
+    .acs-logo__outer-circle { animation: none; transform: none; }
+    .acs-logo__dwrap        { animation: none; transform: none; }
+    .acs-logo__diamond      { animation: none; transform: rotate(-90deg); }
+
+    // Exit-only swap tuning (applied briefly right before .hover-orb-active is removed).
+    &.hover-orb-exit {
+      .acs-logo__orb    { transition: opacity 95ms linear 12ms; }
+      .acs-logo__emblem { transition: opacity 22ms linear; }
+    }
+
+    // Active: orb visible + orbiting, emblem hidden.
+    &.hover-orb-active {
+      .acs-logo__orb    { opacity: 1; }
+      .acs-logo__emblem { opacity: 0; }
+
+      .acs-logo__vertical-oval { animation: acs-hover-vert    $acs-hover-vert    linear infinite; }
+      .acs-logo__hwrap         { animation: acs-hover-hwrap   $acs-hover-hwrap   linear infinite; }
+      .acs-logo__hoval         { animation: acs-hover-hoval   $acs-hover-hoval   linear infinite; }
+      .acs-logo__diamond       { animation: acs-hover-diamond $acs-hover-diamond linear infinite; }
+    }
+
+    // Resting arrived pose when idle.
+    &:not(.hover-orb-active) {
+      .acs-logo__vertical-oval { animation: none; transform: rotateY(0deg); }
+      .acs-logo__hwrap         { animation: none; transform: rotate(0deg); }
+      .acs-logo__hoval         { animation: none; transform: rotateX(0deg); }
+      .acs-logo__diamond       { animation: none; transform: rotate(-90deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .acs-logo__orb    { display: none; }
+      .acs-logo__emblem { opacity: 1 !important; }
+      .acs-logo__layer,
+      .acs-logo__hwrap,
+      .acs-logo__hoval,
+      .acs-logo__diamond { animation: none !important; }
+    }
+  }
+}
+
+// ── Reveal keyframes (one-shot, duration driven by --acs-cycle) ───────────────
+
+${orbKeyframes}
+
+${swapKeyframes}
+
+// ── Orbit / hover keyframes (infinite loops) ──────────────────────────────────
+
+@keyframes acs-hover-vert {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+@keyframes acs-hover-hwrap {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes acs-hover-hoval {
+  0%   { transform: rotateX(-360deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+@keyframes acs-hover-diamond {
+  from { transform: rotate(-90deg); }
+  to   { transform: rotate(-270deg); }
+}
+`;
+
+// ── logo.js ES module ─────────────────────────────────────────────────────────
+
+const OUT_JS = resolve(__dirname, '..', 'export', 'logo.js');
+
+const logoJs = `/**
+ * ACS Animated Logo — logo.js
+ * Generated by npm run build:logo — do not edit by hand.
+ *
+ * Handles hover-settle and orbit-mode activation for .acs-logo elements.
+ *
+ * Usage (ES module import):
+ *   import { initLogos } from './logo.js';
+ *   initLogos();              // scan document
+ *   initLogos(myContainer);   // scan a specific element
+ *
+ * Usage (standalone <script type="module" src="logo.js">):
+ *   Auto-initialises on DOMContentLoaded.
+ *
+ * Timing constants mirror _logo.scss:
+ *   ORBIT_START_MS   = $acs-orbit-start   (${emblemEnd}ms)
+ *   HOVER_VERT_MS    = $acs-hover-vert    (${HOVER_CYCLE_VERT}ms)
+ *   HOVER_HWRAP_MS   = $acs-hover-hwrap   (${HOVER_CYCLE_WRAP}ms)
+ *   HOVER_HOVAL_MS   = $acs-hover-hoval   (${HOVER_CYCLE_FLIP}ms)
+ *   HOVER_DIAMOND_MS = $acs-hover-diamond (${HOVER_CYCLE_DIAMOND}ms)
+ */
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+/** ms after page load when the full-animation logo enters orbit mode. */
+const ORBIT_START_MS = ${emblemEnd};
+
+const HOVER_LAYER_MS = {
+  vertical: ${HOVER_CYCLE_VERT},
+  wrap:     ${HOVER_CYCLE_WRAP},
+  flip:     ${HOVER_CYCLE_FLIP},
+  diamond:  ${HOVER_CYCLE_DIAMOND},
+};
+
+const HOVER_SETTLE_EASE  = 'cubic-bezier(0.2, 0.2, 0.8, 1)';
+const HOVER_EXIT_SWAP_MS = 140;
+
+// ── Core logic (shared by both variants) ──────────────────────────────────────
+
+function initOrbitHover(logo) {
+  let finishTimer    = null;
+  let settleRaf      = 0;
+  let exitSwapTimer  = null;
+  let hoverPhase     = 'idle'; // 'idle' | 'active' | 'settling'
+  let pendingRestart = false;
+  let hoverStartAt   = 0;
+
+  const getOrb = () => logo.querySelector('.acs-logo__orb');
+
+  const getLayers = () => {
+    const orb = getOrb();
+    if (!orb) return null;
+    return {
+      vertical: orb.querySelector('.acs-logo__vertical-oval'),
+      wrap:     orb.querySelector('.acs-logo__hwrap'),
+      flip:     orb.querySelector('.acs-logo__hoval'),
+      diamond:  orb.querySelector('.acs-logo__diamond'),
+    };
+  };
+
+  const clearFinishWait = () => {
+    if (finishTimer) { clearTimeout(finishTimer); finishTimer = null; }
+    if (settleRaf)   { cancelAnimationFrame(settleRaf); settleRaf = 0; }
+  };
+
+  const clearExitSwap = () => {
+    if (exitSwapTimer) { clearTimeout(exitSwapTimer); exitSwapTimer = null; }
+    logo.classList.remove('hover-orb-exit');
+  };
+
+  const clearInlineMotion = (layers) => {
+    Object.values(layers).forEach((el) => {
+      if (!el) return;
+      el.style.removeProperty('animation');
+      el.style.removeProperty('transition');
+      el.style.removeProperty('transform');
+    });
+  };
+
+  const cycleState = (elapsed, duration) => {
+    const phase     = ((elapsed % duration) + duration) % duration;
+    const remaining = phase === 0 ? duration : duration - phase;
+    return { progress: phase / duration, remaining };
+  };
+
+  const restartOrb = () => {
+    const orb = getOrb();
+    if (orb) orb.replaceWith(orb.cloneNode(true));
+  };
+
+  const setIdle = () => {
+    clearFinishWait();
+    const layers = getLayers();
+    if (layers) clearInlineMotion(layers);
+    hoverPhase = 'idle';
+    const restart = pendingRestart || logo.matches(':hover');
+    pendingRestart = false;
+    if (restart) { clearExitSwap(); startCycle(); return; }
+    logo.classList.add('hover-orb-exit');
+    logo.classList.remove('hover-orb-active');
+    exitSwapTimer = setTimeout(() => {
+      logo.classList.remove('hover-orb-exit');
+      exitSwapTimer = null;
+    }, HOVER_EXIT_SWAP_MS);
+  };
+
+  const startCycle = () => {
+    if (hoverPhase !== 'idle') return;
+    clearFinishWait();
+    clearExitSwap();
+    pendingRestart = false;
+    hoverPhase     = 'active';
+    hoverStartAt   = Date.now();
+    logo.classList.remove('hover-orb-active');
+    restartOrb();
+    void logo.getBoundingClientRect();
+    logo.classList.add('hover-orb-active');
+  };
+
+  logo.addEventListener('mouseenter', () => {
+    if (hoverPhase === 'idle')     { startCycle(); return; }
+    if (hoverPhase === 'settling') { pendingRestart = true; }
+  });
+
+  logo.addEventListener('mouseleave', () => {
+    if (hoverPhase === 'settling') { pendingRestart = false; return; }
+    if (hoverPhase !== 'active' || !logo.classList.contains('hover-orb-active')) return;
+
+    hoverPhase     = 'settling';
+    pendingRestart = false;
+
+    const layers = getLayers();
+    if (!layers || !layers.vertical || !layers.wrap || !layers.flip || !layers.diamond) {
+      setIdle();
+      return;
+    }
+
+    const elapsed = Math.max(0, Date.now() - hoverStartAt);
+    const v = cycleState(elapsed, HOVER_LAYER_MS.vertical);
+    const w = cycleState(elapsed, HOVER_LAYER_MS.wrap);
+    const f = cycleState(elapsed, HOVER_LAYER_MS.flip);
+    const d = cycleState(elapsed, HOVER_LAYER_MS.diamond);
+
+    const hFloor = Math.max(w.remaining, f.remaining);
+    const extendToFloor = (rem, period, floor) =>
+      rem >= floor ? rem : rem + Math.ceil((floor - rem) / period) * period;
+
+    const vDur   = extendToFloor(v.remaining, HOVER_LAYER_MS.vertical, hFloor);
+    const wDur   = w.remaining;
+    const fDur   = f.remaining;
+    const dDur   = extendToFloor(d.remaining, HOVER_LAYER_MS.diamond, hFloor);
+    const vExtra = Math.round((vDur - v.remaining) / HOVER_LAYER_MS.vertical);
+    const dExtra = Math.round((dDur - d.remaining) / HOVER_LAYER_MS.diamond);
+
+    const targets = [
+      {
+        el:   layers.vertical,
+        from: 'rotateY(' + (v.progress * 360).toFixed(3) + 'deg)',
+        to:   'rotateY(' + (360 + vExtra * 360) + 'deg)',
+        dur:  vDur,
+      },
+      {
+        el:   layers.wrap,
+        from: 'rotate(' + (w.progress * 360).toFixed(3) + 'deg)',
+        to:   'rotate(360deg)',
+        dur:  wDur,
+      },
+      {
+        el:   layers.flip,
+        from: 'rotateX(' + (-360 + f.progress * 360).toFixed(3) + 'deg)',
+        to:   'rotateX(0deg)',
+        dur:  fDur,
+      },
+      {
+        el:   layers.diamond,
+        from: 'rotate(' + (-90 - d.progress * 180).toFixed(3) + 'deg)',
+        to:   'rotate(' + (-270 - dExtra * 180) + 'deg)',
+        dur:  dDur,
+      },
+    ];
+
+    targets.forEach(({ el, from }) => {
+      el.style.animation  = 'none';
+      el.style.transition = 'none';
+      el.style.transform  = from;
+    });
+    void layers.vertical.getBoundingClientRect();
+
+    settleRaf = requestAnimationFrame(() => {
+      settleRaf = 0;
+      targets.forEach(({ el, to, dur }) => {
+        el.style.transition = 'transform ' + dur + 'ms ' + HOVER_SETTLE_EASE;
+        el.style.transform  = to;
+      });
+      finishTimer = setTimeout(setIdle, Math.max(...targets.map((t) => t.dur)) + 40);
+    });
+  });
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────────
+
+/**
+ * Initialise all ACS logo variants within \`root\`.
+ *
+ * @param {Document | Element} root  Defaults to \`document\`.
+ */
+export function initLogos(root = document) {
+  // Hover variant — wire up immediately.
+  root.querySelectorAll('.acs-logo--hover').forEach(initOrbitHover);
+
+  // Full-animation variant — add orbit class once the reveal completes, then wire up.
+  root.querySelectorAll('.acs-logo:not(.acs-logo--hover)').forEach((logo) => {
+    setTimeout(() => {
+      logo.classList.add('acs-logo--orbit-active');
+      initOrbitHover(logo);
+      // If the pointer was already over the logo during the reveal, start immediately.
+      if (logo.matches(':hover')) {
+        logo.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+      }
+    }, ORBIT_START_MS);
+  });
+}
+
+// Auto-init when included as a standalone <script type="module">.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => initLogos());
+} else {
+  initLogos();
+}
+`;
+
+// ── Write outputs ─────────────────────────────────────────────────────────────
+
 mkdirSync(dirname(OUT), { recursive: true });
-writeFileSync(OUT, page, 'utf8');
+writeFileSync(OUT,       page,         'utf8');
+writeFileSync(OUT_SCSS,  scssPartial,  'utf8');
+writeFileSync(OUT_JS,    logoJs,       'utf8');
 
 console.log(`ACS logo export written to ${OUT}`);
+console.log(`ACS logo SCSS  written to ${OUT_SCSS}`);
+console.log(`ACS logo JS    written to ${OUT_JS}`);
 console.log(`  master cycle: ${masterCycle}ms (sequence ${sequenceEnd}ms + pause ${LOOP_PAUSE_MS}ms)`);
 console.log(`  reveal @ ${revealAt}ms · emblem crossfade @ ${crossfadeAt}ms · orb hidden @ ${emblemEnd}ms`);
